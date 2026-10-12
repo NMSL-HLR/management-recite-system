@@ -1,5 +1,29 @@
 # 北大 346 体育管理学 · 主动提取
 
+## V3 Alpha Lite
+
+本次交付打开 `MRC_V3_Alpha_Lite.html`，可直接双击离线使用。开发分支：`feat/v3-coach-alpha-lite`。
+
+打开后进入「今日作战台」，自动推荐一项训练；完成现有提取流程后，系统给出下一项、等待复测或收工。未完成草稿优先恢复。首页默认预算 60 分钟，可在折叠区调整；每项按预计时长占用预算，这是有限任务安排，不是精确学习计时。
+
+主导航收敛为今日训练、资料库、学习记录、设置数据。方法说明、原版错漏记录和原版闭卷考试从设置进入。闭卷考试与计时没有重构。
+
+继续使用原本的本地存储、JSON 预览导入、合并、导出和回滚。只增加可选的 `coachState` 字段，`schemaVersion` 仍为 1；旧记录不重新评分。刷新及在同一浏览器、同一文件位置重新打开可恢复任务。更换文件路径或浏览器时，通过原 JSON 导入恢复学习记录；Alpha Lite 不承诺跨文件导入恢复教练预算或进行中草稿，原导入流程会清空活动 Recall。
+
+构建与交付：
+
+```bash
+npm ci
+npm test
+npm run build
+CHROME_PATH=/path/to/chrome npm run file-check
+CHROME_PATH=/path/to/chrome npm run package-alpha-lite
+```
+
+`package-release` 现在也指向 Alpha Lite 打包入口，只写 `MRC_V3_Alpha_Lite.html`。打包前后检查 `MRC_V2.2.2_沉浸诵读冻结版.html` 及核心文件的哈希，保留稳定 HTML。部分托管浏览器禁止 `file://`，验收需使用允许本地文件的测试浏览器。
+
+实现与验证详情见 [Alpha Lite 交付报告](reports/alpha-lite-delivery.md)。以下为保留的 V2.2.2 使用说明。
+
 这是一个离线网页。它用来练「只看题目，能不能把答案骨架写出来」，并记下用了哪一层提示。它不是电子书，也不是点一下会/不会的闪卡。
 
 资料来自工作区里的两份 Markdown：

@@ -35,10 +35,10 @@ export function App() {
   return (
     <div className={`shell${focusReading ? ' focus-reading' : ''}`}>
       <aside className="side">
-        <p className="brand">346 管理学<br />主动提取</p>
+        <p className="brand">MRC · 346 管理学<br />每日提取教练</p>
         <nav>
           {NAV.map((item, index) => (
-            <button key={item.id} type="button" className={app.state.view === item.id ? 'on' : ''} onClick={() => app.setView(item.id)}>
+            <button key={item.id} type="button" className={app.state.view === item.id || (item.id === 'today' && app.state.view === 'recall') ? 'on' : ''} onClick={() => app.setView(item.id)}>
               <small>Alt+{index + 1}</small>
               {item.label}
             </button>
@@ -61,7 +61,7 @@ export function App() {
         {app.state.view === 'archive' ? <Archive /> : null}
         {app.state.view === 'settings' ? <Settings /> : null}
       </main>
-      <ReadingToolbar />
+      {app.state.view !== 'today' ? <ReadingToolbar /> : null}
     </div>
   )
 }

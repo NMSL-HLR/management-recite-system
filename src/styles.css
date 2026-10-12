@@ -424,3 +424,17 @@ details { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
 @media (min-width: 1600px) {
   main { padding-left: 36px; padding-right: 36px; }
 }
+
+.coach-page { max-width: 860px !important; margin: 12px auto; }
+.coach-day { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.coach-primary { padding: clamp(22px, 4vw, 42px); border-top: 4px solid var(--cinnabar); }
+.coach-page .coach-primary { max-width: none !important; }
+.coach-label { margin-top: 26px; color: var(--muted); font-size: 0.88rem; }
+.coach-title { font-size: clamp(1.45rem, 3vw, 2rem); margin: 10px 0 18px; overflow-wrap: anywhere; }
+.coach-reason { max-width: 42em; margin-bottom: 16px; line-height: 1.8; }
+.coach-start { display: block; margin: 26px 0 18px; padding: 12px 28px; font-weight: 650; }
+.coach-footer { color: var(--muted); padding: 8px 2px; }
+.coach-footer details { margin-top: 18px; }
+.coach-footer .field { margin: 12px 0; max-width: 220px; }
+.coach-next { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 20px; }
+.coach-next .btn { margin: 12px 8px 0 0; }

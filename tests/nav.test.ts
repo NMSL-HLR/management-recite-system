@@ -2,17 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { NAV } from '../src/nav'
 
 describe('navigation', () => {
-  it('includes methodology after today', () => {
+  it('makes training the default among four primary destinations', () => {
     expect(NAV.map((row) => row.id)).toEqual([
       'today',
-      'method',
-      'recall',
-      'exam',
       'library',
-      'mistakes',
       'archive',
       'settings',
     ])
-    expect(NAV[1]?.label).toBe('方法论')
+    expect(NAV[0]?.label).toBe('今日训练')
   })
 })

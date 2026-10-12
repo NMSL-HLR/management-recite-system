@@ -1,0 +1,20 @@
+{
+  "baselineCommit": "d18723f",
+  "protectedFiles": {
+    "MRC_V2.2.2_沉浸诵读冻结版.html": "19df4c6cc1aa481cf94be541ca965c67e25adee9836b51540efdcbc2a649fbcb",
+    "src/types.ts": "9072ef4021ed64662ff15f99d7d1302c9fd611f1cec0d4e7dff063c6d7c3b170",
+    "src/content.ts": "a8f5781a6f5711c39db87b8fb9509ba34f425fa210298a7b6324e2b3b03d4fa8",
+    "src/engine/recall.ts": "cdfa5dc16c68460e48b666e3fa1ad8226fdfc1b4ea8e08f6ca663abcaa104a54",
+    "src/engine/evidence.ts": "924de4a468a4d8610bdfae226b8601e258d523ecd57b31b27d7f728d7b2ac435",
+    "src/engine/schedule.ts": "e3c52a2442feb85ba41746f6e9c65f0f0667f28db8a85372c6bd808d1dffdb38",
+    "src/engine/priority.ts": "daf018b1e696a3c44c9dc4802ce5373a97b695ea6047e200bf914bbc2e04ad30",
+    "src/engine/exam.ts": "e1707f3c3487deda85b8611f7c3140d8b9540ee719fd3cd7857c995f5dbf0ae7",
+    "src/engine/transfer.ts": "bca5063a043e6c41a10445c3abb4161d2ab79c9d5ded73e3caada9bcb60f3f20",
+    "src/engine/storage.ts": "be6fed02b10263fa44e283a6c2da7c0c62b56aa20e5f78b1455e34515e5ccd03",
+    "sources/管理学A册_完整转换.md": "36a81253ef4497aec2cfa0af6a6746169a24520d6ba176e175a5931ca8a237f8",
+    "sources/管理学B册_完整转换.md": "6e6c114562f92c5e4771f8db5eea8f1df9b35278cf4620f9732b79eae00ed457",
+    "src/engine/dayplan.ts": "09b71147ccc19a3e8e61a388cbfb5103f87d8ea950bddeb0db15884a8d30109a",
+    "src/state/defaults.ts": "ab50c9055d4d08b70d80eb96c23ffde20c2dd85c49405e4d34c13fd24ea1d2a3"
+  },
+  "contentFingerprint": "6b2d5bd2c9cd2f02d3628d61d855a7a5259dae1a2515fe8f7c67d68f880a43e1"
+}

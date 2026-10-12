@@ -18,6 +18,15 @@ export function Settings() {
     <div className="stack">
       <h1>设置与数据</h1>
       <section className="card">
+        <h2>方法与原版工具</h2>
+        <p className="muted">每日任务从今日训练开始。以下保留 V2.2.2 的方法说明与工具。</p>
+        <div className="actions">
+          <button className="btn" type="button" onClick={() => app.setView('method')}>方法论</button>
+          <button className="btn" type="button" onClick={() => app.setView('exam')}>闭卷考试（原版）</button>
+          <button className="btn" type="button" onClick={() => app.setView('mistakes')}>错漏记录</button>
+        </div>
+      </section>
+      <section className="card">
         <h2>版本</h2>
         <p>schemaVersion {content.meta.schemaVersion}</p>
         <p>contentVersion {content.meta.contentVersion}</p>
@@ -79,10 +88,11 @@ export function Settings() {
             沉浸诵读 {settings.focusReading ? '开' : '关'}
           </button>
         </div>
-        <p className="muted">主题仍用 data-theme，不跟随系统深浅色。快捷键：Alt+1–8 切页，Alt+D 换主题。右下角浮动栏可快速切换字号与诵读模式。</p>
+        <p className="muted">快捷键：Alt+1–4 切换主要页面，Alt+D 换主题。右下角浮动栏可快速切换字号与诵读模式。</p>
       </section>
       <section className="card">
         <h2>一日时长</h2>
+        <p className="muted">以下为原版日程参数。Alpha Lite 的每日任务预算在今日作战台调整；原版闭卷计时与复测间隔继续使用原设置。</p>
         <div className="form-grid">
           <NumberField label="总分钟" value={settings.day.totalMinutes} onChange={(totalMinutes) => app.updateSettings({ day: { ...settings.day, totalMinutes } })} />
           <NumberField label="晚测分钟" value={settings.day.eveningMinutes} onChange={(eveningMinutes) => app.updateSettings({ day: { ...settings.day, eveningMinutes } })} />

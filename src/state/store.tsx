@@ -1,7 +1,11 @@
+import { decideNext } from '../coach/decision'
+import { ensurePlan } from '../coach/planner'
+import { coachInput, prepareCoachState, startCoachRecall, startChosenRecall, commitCoachRecall, continueCoach } from '../coach/recallAdapter'
+import type { CoachDecision, CoachPersisted, CoachState } from '../coach/types'
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { content, getItem } from '../content'
 import { buildDayPlan, resolveEvening } from '../engine/dayplan'
-import { commitAttempt, requestHint, revealFull, startRecall, submitDraft, goCompare, toRestate, buildHintContext } from '../engine/recall'
+import { requestHint, revealFull, startRecall, submitDraft, goCompare, toRestate, buildHintContext } from '../engine/recall'
 import { BACKUP_KEY, DATA_KEY, safeGet, safeSet } from '../engine/storage'
 import { commitImport, inspectImport, type ImportPlan } from '../engine/transfer'
 import { defaultPersisted, defaultSettings } from './defaults'
@@ -11,7 +15,12 @@ import { DEFAULT_GAPS } from '../engine/schedule'
 import type { ExamState, Persisted, RecallState, RelationStatus, ViewId } from '../types'
 
 interface AppApi {
-  state: Persisted
+  state: CoachPersisted
+  coachPlan: CoachState
+  coachDecision: CoachDecision
+  startCoach: () => void
+  closeCoachDay: () => void
+  setCoachBudget: (minutes: number) => void
   warning: string | null
   importPlan: ImportPlan | null
   now: number
@@ -105,7 +114,7 @@ function loadInitial(): { state: Persisted; warning: string | null; hold: boolea
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const initial = useMemo(loadInitial, [])
-  const [state, setState] = useState(initial.state)
+  const [state, setState] = useState<CoachPersisted>(() => ({ ...prepareCoachState(initial.state, Date.now()), view: 'today' }))
   const [warning, setWarning] = useState<string | null>(initial.warning)
   const [hold, setHold] = useState(initial.hold)
   const [importPlan, setImportPlan] = useState<ImportPlan | null>(null)
@@ -134,17 +143,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     return {
       state,
+      coachPlan: ensurePlan(state.coachState, now),
+      coachDecision: decideNext(coachInput(state), ensurePlan(state.coachState, now), now),
+      startCoach: () => setState((prev) => startCoachRecall(prev, Date.now())),
+      closeCoachDay: () => setState((prev) => ({ ...prev, view: 'today', coachState: { ...ensurePlan(prev.coachState, Date.now()), closed: true } })),
+      setCoachBudget: (minutes) => {
+        if (![15, 30, 45, 60, 90, 120].includes(minutes)) return
+        setState((prev) => {
+          const plan = ensurePlan(prev.coachState, Date.now())
+          return { ...prev, coachState: { ...plan, budgetMinutes: minutes, closed: minutes > plan.budgetMinutes ? false : plan.closed } }
+        })
+      },
       warning,
       importPlan,
       now,
       hintFor,
       setView: (view) => setState((prev) => ({ ...prev, view })),
       patchRecall: (partial) => setState((prev) => ({ ...prev, recall: prev.recall ? { ...prev.recall, ...partial } : prev.recall })),
-      startRecallItem: (itemId) => setState((prev) => ({ ...prev, view: 'recall', recall: startRecall(itemId, Date.now()), recallQueue: [itemId] })),
+      startRecallItem: (itemId) => setState((prev) => startChosenRecall(prev, itemId, Date.now())),
       startQueue: (ids) => {
-        const clean = ids.filter((id) => getItem(id))
-        if (!clean.length) return
-        setState((prev) => ({ ...prev, view: 'recall', recall: startRecall(clean[0], Date.now()), recallQueue: clean }))
+        const first = ids.find((id) => getItem(id))
+        if (first) setState((prev) => startChosenRecall(prev, first, Date.now()))
       },
       recallHint: () => setState((prev) => {
         if (!prev.recall) return prev
@@ -157,18 +176,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       recallCompare: () => setState((prev) => prev.recall ? { ...prev, recall: goCompare(prev.recall, Date.now()) } : prev),
       recallReveal: () => setState((prev) => prev.recall ? { ...prev, recall: revealFull(prev.recall, Date.now()) } : prev),
       recallRestate: () => setState((prev) => prev.recall ? { ...prev, recall: toRestate(prev.recall) } : prev),
-      recallCommit: () => setState((prev) => {
-        if (!prev.recall) return prev
-        const item = getItem(prev.recall.itemId)
-        if (!item) return prev
-        const attempt = commitAttempt(prev.recall, item, Date.now(), prev.settings.gaps, prev.attempts)
-        return { ...prev, attempts: [...prev.attempts, attempt], recall: { ...prev.recall, phase: 'done', result: attempt } }
-      }),
-      recallNext: () => setState((prev) => {
-        const rest = prev.recallQueue.filter((id) => id !== prev.recall?.itemId)
-        if (!rest.length) return { ...prev, recall: null, recallQueue: [], view: 'today' }
-        return { ...prev, recallQueue: rest, recall: startRecall(rest[0], Date.now()) }
-      }),
+      recallCommit: () => {
+        const next = commitCoachRecall(state, Date.now())
+        if (next === state) return
+        if (hold) {
+          setWarning('当前本地记录受保护，无法写入。请先导出 JSON，或通过原有导入流程恢复记录。')
+          return
+        }
+        const result = safeSet(browserKv(), DATA_KEY, JSON.stringify(next))
+        if (!result.ok) {
+          setWarning(`本轮保存失败：${result.warning}。草稿保留，请重试或导出 JSON。`)
+          return
+        }
+        setState(next)
+      },
+      recallNext: () => setState((prev) => continueCoach(prev, Date.now())),
       setLibrary: (partial) => setState((prev) => ({ ...prev, view: 'library', library: { ...prev.library, ...partial } })),
       toggleBookmark: (id) => setState((prev) => ({
         ...prev,
@@ -201,6 +223,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ),
       })),
       startEvening: () => setState((prev) => {
+        if (prev.recall && prev.recall.phase !== 'done') return { ...prev, view: 'recall' }
         const ids = resolveEvening(content.items, prev.attempts, Date.now(), 11)
         if (!ids.length) return prev
         return { ...prev, view: 'recall', recall: startRecall(ids[0], Date.now()), recallQueue: ids }
@@ -266,7 +289,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       dismissWarning: () => setWarning(null),
     }
-  }, [state, warning, importPlan, now])
+  }, [state, warning, importPlan, now, hold])
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }

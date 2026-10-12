@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { CoachNext } from '../components/CoachNext'
 import { content, getItem } from '../content'
 import { assessExamReadiness } from '../engine/evidence'
 import { EvidenceBadge, RedlineCard, SectionList, Signals } from '../components/render'
@@ -42,7 +43,10 @@ export function Recall() {
           <h1>{item.title}</h1>
           <Signals item={item} />
         </div>
-        {app.state.settings.showTimer ? <strong className="timer">{formatClock(elapsed)}</strong> : null}
+        <div className="actions">
+          {app.state.settings.showTimer ? <strong className="timer">{formatClock(elapsed)}</strong> : null}
+          <button className="btn ghost" type="button" onClick={() => app.setView('today')}>暂停，回到今日</button>
+        </div>
       </header>
       <ol className="steps">
         {stepLabels.map((label, index) => (
@@ -193,13 +197,12 @@ export function Recall() {
           <p>最高提示：{HINT_LABEL[recall.result.highestHintUsed]}。撤提示复述：{recall.result.postRevealNoHintPassed ? '通过' : '未通过或未记'}。信心 {recall.result.selfConfidence}。这三项分开保存。</p>
           {recall.result.sportsExampleMissing ? <p className="muted">本轮体育例证未核对（sportsExampleMissing），与上方 evidence 等级无关。</p> : null}
           <p className="muted">主观信心不能把本轮改成独立提取。</p>
-          <div className="actions">
-            <button className="btn primary" type="button" onClick={app.recallNext}>{app.state.recallQueue.length > 1 ? '下一题' : '回到今日'}</button>
-          </div>
+          <p>下次复测：{recall.result.dueAt ? new Date(recall.result.dueAt).toLocaleString() : '未安排'}。</p>
+          <CoachNext />
         </section>
       ) : null}
       {recall.phase !== 'draft' && recall.frozenDraft ? <p className="muted">揭晓前草稿已冻结。</p> : null}
-      <p className="muted">队列还剩 {app.state.recallQueue.length} 题。候选关系 {ctx.candidateRelationIds.length} 条不在上面。</p>
+      <p className="muted">一次只完成当前这一题。候选关系 {ctx.candidateRelationIds.length} 条未进入提示链。</p>
     </div>
   )
 }
