@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { content, getItem } from '../content'
 import { useApp } from '../state/store'
 import { UI_VERSION } from '../state/uiSettings'
@@ -11,6 +11,7 @@ export function Settings() {
   const [customItem, setCustomItem] = useState(content.items.find((item) => item.coreA)?.id || '')
   const [customText, setCustomText] = useState('')
   const [customError, setCustomError] = useState<string | null>(null)
+  const [fileError, setFileError] = useState('')
   const keywords = content.keywords.flatMap((bucket) => bucket.hints.map((hint) => ({ ...hint, itemId: bucket.itemId })))
     .filter((hint) => !keywordQuery.trim() || hint.text.includes(keywordQuery.trim()) || (getItem(hint.itemId)?.title || '').includes(keywordQuery.trim()))
     .slice(0, 40)
@@ -44,10 +45,13 @@ export function Settings() {
         <label className="field">选择 JSON
           <input type="file" accept="application/json" onChange={async (event) => {
             const file = event.target.files?.[0]
+            event.target.value = ''
             if (!file) return
-            app.stageImport(await file.text())
+            setFileError('')
+            try { app.stageImport(await file.text()) } catch { setFileError('文件读取失败，当前记录未改动。请重新选择文件。') }
           }} />
         </label>
+        {fileError && <p className="warnbox" role="alert">{fileError}</p>}
         {app.importPlan ? (
           <div className="warnbox">
             <p>{app.importPlan.summary.message}</p>
@@ -179,9 +183,18 @@ function StatusButtons({ current, onChange }: { current: RelationStatus; onChang
 }
 
 function NumberField({ label, value, onChange, min = 0 }: { label: string; value: number; onChange: (value: number) => void; min?: number }) {
+  const [draft, setDraft] = useState(String(value))
+  const [error, setError] = useState('')
+  useEffect(() => { setDraft(String(value)) }, [value])
+  const commit = () => {
+    const next = Number(draft)
+    if (!draft.trim() || !Number.isFinite(next) || next < min) { setError(`请输入不小于 ${min} 的数字，原设置未改动。`); return }
+    setError(''); if (next !== value) onChange(next)
+  }
   return (
     <label className="field">{label}
-      <input type="number" min={min} step="any" value={value} onChange={(event) => { const next = event.target.valueAsNumber; if (Number.isFinite(next) && next >= min) onChange(next) }} />
+      <input type="number" min={min} step="any" value={draft} aria-invalid={Boolean(error)} onChange={event => { setDraft(event.target.value); setError('') }} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setDraft(String(value)); setError('') } }} />
+      {error && <small role="status">{error}</small>}
     </label>
   )
 }

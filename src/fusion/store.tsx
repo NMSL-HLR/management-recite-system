@@ -20,8 +20,11 @@ interface FusionApi {
   open: (panel: Panel) => void
   start: (candidate?: Candidate) => void
   closeDay: () => void
-  setMinutes: (minutes: number) => void
-  setPolicy: (subject: string, patch: Partial<SubjectPolicy>) => void
+  reopenDay: () => void
+  setMinutes: (minutes: number, scope?: 'today' | 'daily') => void
+  setPolicy: (subject: string, patch: Partial<SubjectPolicy>) => boolean
+  libraryDraft: LibraryDraft
+  setLibraryDraft: (draft: LibraryDraft) => void
   patchSession: (patch: Partial<GeneralSession>) => void
   reveal: () => void
   rate: (rating: Rating) => void
@@ -32,8 +35,13 @@ interface FusionApi {
   exportAll: () => void
   exportGeneral: () => void
   rollback: () => void
+  rollbackRequested: boolean
+  confirmRollback: () => void
+  cancelRollback: () => void
   dismiss: () => void
 }
+export interface LibraryDraft { subject: string; title: string; content: string; checklist: string; chapter: string }
+export const emptyLibraryDraft: LibraryDraft = { subject: '运动生理学', title: '', content: '', checklist: '', chapter: '' }
 const Ctx = createContext<FusionApi | null>(null)
 export function downloadJson(value: unknown, name: string) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }))
@@ -57,6 +65,15 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const [panel, setPanel] = useState<Panel>('today')
   const [message, setMessage] = useState<string | null>(recoveryMessage ?? loaded.warning)
   const [importPlan, setImportPlan] = useState<FusionImportPlan | null>(null)
+  const [rollbackRequested, setRollbackRequested] = useState(false)
+  const [libraryDraft, setLibraryDraft] = useState<LibraryDraft>(emptyLibraryDraft)
+  const hasLibraryDraft = Boolean(libraryDraft.title || libraryDraft.content || libraryDraft.checklist || libraryDraft.chapter)
+  useEffect(() => {
+    if (!hasLibraryDraft) return
+    const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', guard)
+    return () => window.removeEventListener('beforeunload', guard)
+  }, [hasLibraryDraft])
   const importRevision = useRef('')
   const renderNow = Date.now()
   const prepared = lockChapters(reconcileMrc(state, mrc.state, renderNow), mrc.state, renderNow)
@@ -110,19 +127,20 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   }
   const api: FusionApi = {
     state: prepared, decision: decide(prepared, mrc.state, renderNow), panel, message,
-    blocked: blocked || mrc.storageBlocked, importPlan, open, start,
+    blocked: blocked || mrc.storageBlocked, importPlan, open, start, libraryDraft, setLibraryDraft,
     closeDay: () => { const next = current(); if (next.active?.status === 'in_progress') { setMessage('当前训练已暂停，仍可继续；完成后再收工。'); return } if (persist({ ...next, day: { ...next.day, closed: true } })) setPanel('today') },
-    setMinutes: minutes => {
-      if (![15, 30, 45, 60, 90, 120, 180].includes(minutes)) return
-      const next = current(); persist({ ...next, settings: { ...next.settings, minutes }, day: { ...next.day, budgetMinutes: minutes, closed: minutes > next.day.budgetMinutes ? false : next.day.closed } })
+    reopenDay: () => { const next = current(); if (persist({ ...next, day: { ...next.day, closed: false } })) setPanel('today') },
+    setMinutes: (minutes, scope = 'today') => {
+      if (!Number.isInteger(minutes) || minutes < 15 || minutes > 600) return
+      const next = current(); persist({ ...next, settings: scope === 'daily' ? { ...next.settings, minutes } : next.settings, day: { ...next.day, budgetMinutes: minutes } })
     },
     setPolicy: (subject, patch) => {
       const next = current()
       const policy = { ...(Object.hasOwn(next.settings.subjects, subject) ? next.settings.subjects[subject] : { weight: 1, newCap: 3, chapterCap: 3 }), ...patch }
-      if (!Number.isInteger(policy.newCap) || policy.newCap < 0 || policy.newCap > 50 || !Number.isInteger(policy.chapterCap) || policy.chapterCap < 0 || policy.chapterCap > 20 || !Number.isFinite(policy.weight) || policy.weight < 1 || policy.weight > 10) return
+      if (!Number.isInteger(policy.newCap) || policy.newCap < 0 || policy.newCap > 50 || !Number.isInteger(policy.chapterCap) || policy.chapterCap < 0 || policy.chapterCap > 20 || !Number.isFinite(policy.weight) || policy.weight < 1 || policy.weight > 10) return false
       const selected = { ...next.day.selectedChapters }
-      delete selected[subject] // Explicit policy change is the only same-day scope reset.
-      persist(lockChapters({ ...next, settings: { ...next.settings, subjects: { ...next.settings.subjects, [subject]: policy } }, day: { ...next.day, selectedChapters: selected } }, mrc.state, Date.now()))
+      if (patch.newCap !== undefined || patch.chapterCap !== undefined) delete selected[subject]
+      return persist(lockChapters({ ...next, settings: { ...next.settings, subjects: { ...next.settings.subjects, [subject]: policy } }, day: { ...next.day, selectedChapters: selected } }, mrc.state, Date.now()))
     },
     patchSession: patch => {
       const next = current(); if (!next.session || next.session.phase === 'done') return
@@ -171,7 +189,11 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
       } else downloadJson(makeEnvelope(ref.current, mrc.state), `346-Fusion-${new Date().toISOString().slice(0, 10)}.json`)
     },
     exportGeneral: () => { if (blockedRef.current) { api.exportAll(); return } downloadJson(ref.current.general, '346-memory-module.json') },
-    rollback: () => {
+    rollbackRequested,
+    rollback: () => setRollbackRequested(true),
+    cancelRollback: () => setRollbackRequested(false),
+    confirmRollback: () => {
+      setRollbackRequested(false)
       try {
         const raw = localStorage.getItem(FUSION_BACKUP_KEY)
         if (!raw) throw new Error('没有找到整包导入前备份。')

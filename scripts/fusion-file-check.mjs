@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import puppeteer from 'puppeteer-core'
+import { checkJourneys } from './ux-file-check.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const target = pathToFileURL(join(root, process.env.FUSION_HTML || 'dist/index.html')).href
@@ -183,7 +184,7 @@ try {
   assert.ok((await text(hint)).includes('当前没有立即任务'))
   assert.ok((await text(hint)).includes('下一次复测'))
   await click(hint, '今天先到这里'); await hint.reload({ waitUntil: 'networkidle0' })
-  assert.ok((await text(hint)).includes('可以收工'))
+  assert.ok((await text(hint)).includes('今天已收工'))
   scenarios.push('未来复测显示等待，主动收工后刷新不再追加')
 
   // Storage failure during general submission: both log and session must stay unchanged.
@@ -200,6 +201,7 @@ try {
   const { page: rollback } = await open(); const prior = await stores(rollback)
   await importFile(rollback, old); await click(rollback, '确认整合导入')
   await click(rollback, '设置数据', '.side'); await click(rollback, '恢复整包导入前备份')
+  await click(rollback, '确认恢复旧备份', 'dialog')
   await settle(rollback, () => document.body.innerText.includes('已恢复整包'))
   assert.deepEqual((await stores(rollback)).platform.general, prior.platform.general)
   assert.deepEqual((await stores(rollback)).mrc.attempts, prior.mrc.attempts)
@@ -278,6 +280,7 @@ try {
   await importFile(emptyRollback, old); await click(emptyRollback, '确认整合导入')
   await emptyRollback.evaluate((pk, mk) => localStorage.setItem('346-fusion-backup-v1', JSON.stringify({ [pk]: null, [mk]: null })), PK, MK)
   await click(emptyRollback, '设置数据', '.side'); await click(emptyRollback, '恢复整包导入前备份')
+  await click(emptyRollback, '确认恢复旧备份', 'dialog')
   await settle(emptyRollback, () => document.body.innerText.includes('已恢复整包'))
   assert.deepEqual((await stores(emptyRollback)).mrc.attempts, [])
   assert.equal((await stores(emptyRollback)).platform.general.points.length, 60)
@@ -390,6 +393,7 @@ try {
   await upgrade.reload({ waitUntil: 'networkidle0' })
   assert.equal((await stores(upgrade)).platform.general.points.length, upgraded.platform.general.points.length)
   scenarios.push('恢复接入教材前的旧整包时补入60题，旧题进度、日志、预算与进行中草稿保持，刷新不重复添加')
+  await checkJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   assert.deepEqual(errors, []); assert.deepEqual(external, [])
   const report = { ok: true, html: target, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: ['未实测 Windows Edge、华为浏览器；关闭重开测试为同一浏览器上下文的新页面。'] }
   writeFileSync(join(root, 'reports/fusion-file-check.json'), JSON.stringify(report, null, 2))

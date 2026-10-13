@@ -150,3 +150,19 @@
   .memory-shell .task-time span { font-size: 12px; }
   .memory-shell .coach-start { margin: 20px 0; }
 }
+
+/* Journey feedback and keyboard/mobile usability. */
+.memory-shell .policy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; }
+.memory-shell .policy-grid fieldset { margin: 0; }
+.memory-shell .policy-grid input { width: 100%; }
+.memory-shell .policy-grid small { display: block; min-height: 1.5em; }
+.memory-shell .field-error { color: #a52929; }
+:root[data-theme='dark'] .memory-shell .field-error { color: #ffb4b4; }
+.memory-shell .training-steps { display: flex; flex-wrap: wrap; gap: 12px; padding: 0; list-style-position: inside; font-size: 13px; color: var(--muted); }
+.memory-shell .training-steps [aria-current='step'] { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 5px; }
+.memory-shell .library-detail { scroll-margin-top: 90px; }
+.restore-dialog { width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 48px); overflow: auto; background: var(--paper-strong); color: var(--ink); border: var(--frame-width) solid var(--frame); border-radius: var(--radius); padding: 24px; }
+.restore-dialog::backdrop { background: #08182099; }
+.memory-shell .btn.danger { border-color: #9b2929; color: #9b2929; }
+:root[data-theme='dark'] .memory-shell .btn.danger { color: #ffb4b4; border-color: #ffb4b4; }
+@media (prefers-reduced-motion: reduce) { .memory-shell *, .memory-shell *::before, .memory-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

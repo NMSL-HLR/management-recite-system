@@ -11,6 +11,7 @@ export function Exam() {
   const app = useApp()
   const exam = app.state.exam
   const [clock, setClock] = useState(() => Date.now())
+  const [ending, setEnding] = useState(false)
   useEffect(() => {
     if (!exam) return
     const timer = window.setInterval(() => setClock(Date.now()), 1000)
@@ -38,7 +39,7 @@ export function Exam() {
         </div>
         {remain !== null ? <strong className={remain < 0 ? 'timer late' : 'timer'}>{remain >= 0 ? format(remain) : `超时 ${format(-remain)}`}</strong> : null}
       </header>
-      {!answer.revealed ? <p className="muted">只隐藏答案与下一题。当前题干始终可见。</p> : null}
+      {!answer.revealed ? <p className="muted">切换页面不会暂停计时。作答会自动保存；对照原文后，本题作答冻结。</p> : null}
       {answer.durationSeconds !== undefined && answer.revealed ? (
         <p className="muted">本题用时 {answer.durationSeconds} 秒（对照原文时封存）。</p>
       ) : null}
@@ -58,8 +59,9 @@ export function Exam() {
           <button className="btn" type="button" onClick={goNext} disabled={exam.index >= exam.itemIds.length - 1}>下一题</button>
         )}
         <button className="btn ghost" type="button" onClick={() => downloadExam(exam)}>导出本次作答</button>
-        <button className="btn ghost" type="button" onClick={() => app.patchExam(null)}>结束</button>
+        <button className="btn ghost" type="button" onClick={() => setEnding(true)}>结束</button>
       </div>
+      {ending && <section className="warnbox" role="region" aria-label="结束考试确认"><h2>结束并清除本次考试？</h2><p>本次作答不会自动成为学习档案。请先导出要保留的作答；取消可继续当前考试。</p><div className="actions"><button className="btn" onClick={() => setEnding(false)}>继续考试</button><button className="btn" onClick={() => downloadExam(exam)}>先导出本次作答</button><button className="btn danger" onClick={() => { setEnding(false); app.patchExam(null) }}>确认结束并清除</button></div></section>}
       {answer.revealed ? (
         <div className="compare">
           <article className="card"><h2>我的作答</h2><pre>{answer.text || '（空）'}</pre></article>
@@ -72,7 +74,8 @@ export function Exam() {
 
 function ExamSetup() {
   const app = useApp()
-  const [minutes, setMinutes] = useState(app.state.settings.day.writingMinutes)
+  const [minutes, setMinutes] = useState(String(app.state.settings.day.writingMinutes))
+  const validMinutes = minutes.trim() !== '' && Number.isFinite(Number(minutes)) && Number(minutes) >= 1
   const pool = useMemo(() => content.items, [])
   const start = (title: string, items: StudyItem[], limit: number | null) => {
     const rnd = mulberry32(Date.now() % 100000)
@@ -105,16 +108,17 @@ function ExamSetup() {
   return (
     <div className="stack">
       <h1>闭卷考试</h1>
-      <p>题目跨章节打乱。限时写作只保留原文对照，不生成分数。</p>
+      <p>题目跨章节打乱。限时写作只保留原文对照，不生成分数，也不生成主动提取成绩；不计入全科今日预算。</p>
       <label className="field">每题分钟
-        <input type="number" min={1} value={minutes} onChange={(event) => setMinutes(Math.max(1, Number(event.target.value) || 1))} />
+        <input type="number" min={1} value={minutes} aria-invalid={!validMinutes} onChange={(event) => setMinutes(event.target.value)} />
       </label>
+      {!validMinutes && <p role="status">限时写作需要至少 1 分钟；其他考试模式不受影响。</p>}
       <div className="actions">
         <button className="btn primary" type="button" onClick={() => start('随机 A 题', pool.filter((item) => item.coreA), null)}>随机 A 题</button>
         <button className="btn" type="button" onClick={() => start('随机 B 骨架', pool.filter((item) => item.source === 'B' && item.kind === 'skeleton'), null)}>随机 B 骨架</button>
         <button className="btn" type="button" onClick={() => start('到期题', due, null)} disabled={!due.length}>到期题</button>
         <button className="btn" type="button" onClick={() => start('提示依赖与重学', wrong, null)} disabled={!wrong.length}>错题</button>
-        <button className="btn" type="button" onClick={() => start('限时写作', pool.filter((item) => item.coreA), minutes)}>A 题限时写作</button>
+        <button className="btn" type="button" disabled={!validMinutes} onClick={() => start('限时写作', pool.filter((item) => item.coreA), Number(minutes))}>A 题限时写作</button>
       </div>
     </div>
   )
