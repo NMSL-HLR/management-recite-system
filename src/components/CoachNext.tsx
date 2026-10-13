@@ -1,8 +1,12 @@
 import { getItem } from '../content'
 import { useApp } from '../state/store'
+import { useOptionalFusion } from '../fusion/store'
+import { FusionNext } from '../fusion/views/Next'
 
 export function CoachNext() {
   const app = useApp()
+  const fusion = useOptionalFusion()
+  if (fusion) return <FusionNext />
   const decision = app.coachDecision
   if (decision.kind === 'next' || decision.kind === 'resume') {
     const item = getItem(decision.task.itemId)

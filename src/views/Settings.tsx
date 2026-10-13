@@ -92,7 +92,7 @@ export function Settings() {
       </section>
       <section className="card">
         <h2>一日时长</h2>
-        <p className="muted">以下为原版日程参数。Alpha Lite 的每日任务预算在今日作战台调整；原版闭卷计时与复测间隔继续使用原设置。</p>
+        <p className="muted">以下为原版日程参数。每日训练预算在今日作战台调整；原版闭卷计时与复测间隔继续使用原设置。</p>
         <div className="form-grid">
           <NumberField label="总分钟" value={settings.day.totalMinutes} onChange={(totalMinutes) => app.updateSettings({ day: { ...settings.day, totalMinutes } })} />
           <NumberField label="晚测分钟" value={settings.day.eveningMinutes} onChange={(eveningMinutes) => app.updateSettings({ day: { ...settings.day, eveningMinutes } })} />

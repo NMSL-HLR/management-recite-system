@@ -1,9 +1,12 @@
 import { spawnSync } from 'node:child_process'
-import { copyFileSync } from 'node:fs'
+import { copyFileSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+if (readFileSync(join(root, 'src/main.tsx'), 'utf8').includes('FusionApp')) {
+  throw new Error('This is the fusion branch. Run npm run package-fusion; the frozen Alpha Lite HTML must not be overwritten.')
+}
 function run(command, args, extraEnv = {}) {
   const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ...extraEnv } })
   if (result.status !== 0) process.exit(result.status ?? 1)

@@ -14,7 +14,7 @@ import { DEFAULT_DAY } from '../engine/dayplan'
 import { DEFAULT_GAPS } from '../engine/schedule'
 import type { ExamState, Persisted, RecallState, RelationStatus, ViewId } from '../types'
 
-interface AppApi {
+export interface AppApi {
   state: CoachPersisted
   coachPlan: CoachState
   coachDecision: CoachDecision
@@ -53,6 +53,9 @@ interface AppApi {
   rollback: () => void
   exportJson: () => void
   dismissWarning: () => void
+  storageBlocked: boolean
+  openModuleRecall: (itemId: string, startedAt: number) => boolean
+  adoptMrcState: (next: CoachPersisted) => void
 }
 
 const Ctx = createContext<AppApi | null>(null)
@@ -143,6 +146,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     return {
       state,
+      storageBlocked: hold,
+      adoptMrcState: (next) => { setHold(false); setImportPlan(null); setState(next) },
+      openModuleRecall: (itemId, startedAt) => {
+        if (hold || !getItem(itemId)) return false
+        if (state.recall && state.recall.phase !== 'done') return state.recall.itemId === itemId && state.recall.startedAt === startedAt
+        const next = { ...state, view: 'recall' as const, recall: startRecall(itemId, startedAt), recallQueue: [itemId] }
+        const wrote = safeSet(browserKv(), DATA_KEY, JSON.stringify(next))
+        if (!wrote.ok) { setWarning(`训练开始保存失败：${wrote.warning}`); return false }
+        setState(next)
+        return true
+      },
       coachPlan: ensurePlan(state.coachState, now),
       coachDecision: decideNext(coachInput(state), ensurePlan(state.coachState, now), now),
       startCoach: () => setState((prev) => startCoachRecall(prev, Date.now())),
@@ -298,4 +312,9 @@ export function useApp(): AppApi {
   const value = useContext(Ctx)
   if (!value) throw new Error('AppProvider missing')
   return value
+}
+
+/** Platform routes reuse the existing views and engine through the same API. */
+export function AppApiOverride({ value, children }: { value: AppApi; children: ReactNode }) {
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

@@ -10,11 +10,13 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build": "npm run parse && tsc --noEmit && vite build",
-    "file-check": "node scripts/coach-lite-file-check.mjs",
+    "file-check": "node scripts/fusion-file-check.mjs",
     "verify-package": "node scripts/verify-package.mjs",
-    "package-release": "node scripts/package-alpha-lite.mjs",
+    "package-release": "node scripts/package-fusion.mjs",
     "file-check:v222": "node scripts/file-protocol-check.mjs",
-    "package-alpha-lite": "node scripts/package-alpha-lite.mjs"
+    "package-alpha-lite": "node scripts/package-alpha-lite.mjs",
+    "package-fusion": "node scripts/package-fusion.mjs",
+    "verify-fusion": "node scripts/verify-fusion.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

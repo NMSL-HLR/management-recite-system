@@ -1,0 +1,11 @@
+{
+  "baseCommit": "dd6bcea21630d3a5d182a5ecce944056cd8b0343",
+  "files": {
+    "MRC_V3_Alpha_Lite.html": "fdbbe9c7fead271dd0fd6438103532eac2bfadc8510d18a92fbbf1c8a3b589c1",
+    "MRC_V2.2.2_沉浸诵读冻结版.html": "19df4c6cc1aa481cf94be541ca965c67e25adee9836b51540efdcbc2a649fbcb",
+    "frozen/346_V13_original.html": "cce1decdc6b1334ecc6c01de08cd7869f2c0de6e509256da86bea28d9c46d0ca",
+    "sources/legacy/346-v7.3-source.md": "d5b7b1e92b4826162d3d634f78ee1c4b09dbbe7e14ee100d0f834231c8e473e2",
+    "src/general/scheduler.ts": "a3b2f922f155b8c3f52d35852d73c78d3af3f60fe860bb369931ee77a01a54dd",
+    "src/general/types.ts": "1bdbc6e99b45631d16dcb424d90f9b95ff58a7f443fba4de218b7216bd3368b3"
+  }
+}
