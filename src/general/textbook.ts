@@ -4,6 +4,8 @@ import { createPoint } from './scheduler'
 import { naturalTitleCompare } from './naturalSort'
 
 export const physiologyPack = pack
+// Decode the quote marker for display only; retain the source and pack verbatim.
+export const physiologyPrefaceText = pack.preface.replace(/&gt;/g, '>')
 export function mergeTextbook(data: GeneralData, points: GeneralPoint[], packId: string): GeneralData {
   const known = new Set(data.points.map(p => p.id))
   const additions = points.filter(p => !known.has(p.id))

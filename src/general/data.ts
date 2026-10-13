@@ -88,7 +88,18 @@ export function reviewGeneral(data: GeneralData, pointId: string, rating: Rating
   if (!point || isLegacyManagement(point.subject)) throw new Error('知识点不存在或属于旧管理学资料。')
   const patch = scheduleGeneral(point, rating, now, data.settings)
   const missed = (point.checklist ?? []).filter(label => !checked.includes(label))
-  const leaks = [...(point.leaks ?? []).filter(x => !missed.includes(x.label) && !checked.includes(x.label)), ...missed.map(label => ({ label, due: startOfDay(now) + DAY }))]
+  // An unresolved omission keeps its deadline, even after another failed recall.
+  // For duplicate imported entries, retain the earliest recorded deadline.
+  const pending = new Map<string, NonNullable<GeneralPoint['leaks']>[number]>()
+  for (const leak of point.leaks ?? []) {
+    if (checked.includes(leak.label)) continue
+    const previous = pending.get(leak.label)
+    if (!previous || leak.due < previous.due) pending.set(leak.label, leak)
+  }
+  for (const label of missed) {
+    if (!pending.has(label)) pending.set(label, { label, due: startOfDay(now) + DAY })
+  }
+  const leaks = [...pending.values()]
   const log: GeneralReviewLog = { id: resultId, pointId, subject: point.subject, reviewedAt: now, rating,
     intervalBefore: point.interval, intervalAfter: patch.interval,
     previousState: { difficulty: point.difficulty, interval: point.interval, repetitions: point.repetitions, stability: point.stability,

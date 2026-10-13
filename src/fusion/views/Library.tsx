@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../../state/store'
 import { isLegacyManagement } from '../../general/data'
 import { naturalTitleCompare } from '../../general/naturalSort'
-import { compareGeneralPoints, physiologyPack } from '../../general/textbook'
+import { compareGeneralPoints, physiologyPack, physiologyPrefaceText } from '../../general/textbook'
 import { useFusion } from '../store'
 
 export function FusionLibrary() {
@@ -27,7 +27,7 @@ export function FusionLibrary() {
     <div className="actions"><button className="btn" onClick={() => app.setView('library')}>管理学 A/B 资料</button>{subjects.map(s => <button className={subject === s ? 'btn primary' : 'btn'} key={s} onClick={() => { setSubject(s); setLookup(null); setChapterFilter('') }}>{s}</button>)}<button className={subject === 'legacy' ? 'btn primary' : 'btn'} onClick={() => { setSubject('legacy'); setLookup(null); setChapterFilter('') }}>旧管理学记录</button></div>
     {chapters.length > 0 && <label className="field">按章节查询<select aria-label="资料章节" value={chapterFilter} onChange={e => { setChapterFilter(e.target.value); setLookup(null) }}><option value="">全部章节（{subjectPoints.length}题）</option>{chapters.map(c => <option key={c}>{c}</option>)}</select></label>}
     {chapterNote && <aside className="card"><p className="kicker">原稿章前说明</p><pre>{chapterNote}</pre></aside>}
-    {subjectPoints.some(p => p.sourcePackId === physiologyPack.packId) && <details><summary>《运动生理学》原稿说明与待补充题</summary><p>本次内置8章60题，其中56题进入训练，4题含“内容待补充”，暂仅供查询。核对清单取自原文小标题，不是自动评分。正文按原稿保存，未进行知识准确性审核或补写。</p><pre>{physiologyPack.preface}</pre></details>}
+    {subjectPoints.some(p => p.sourcePackId === physiologyPack.packId) && <details><summary>《运动生理学》原稿说明与待补充题</summary><p>本次内置8章60题，其中56题进入训练，4题含“内容待补充”，暂仅供查询。核对清单取自原文小标题，不是自动评分。正文按原稿保存，未进行知识准确性审核或补写。</p><pre>{physiologyPrefaceText}</pre></details>}
     <input aria-label="查找资料" placeholder="查标题或正文" value={query} onChange={e => setQuery(e.target.value)} />
     {subject === 'legacy' && <p className="warnbox">旧管理学内容与历史评分保留查询，不自动映射到 MRC，也不重复派题。</p>}
     {subject !== 'legacy' && <button className="btn" onClick={() => setShowAdd(!showAdd)}>{showAdd ? '收起录入' : '录入教材条目'}</button>}

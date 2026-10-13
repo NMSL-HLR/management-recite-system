@@ -181,6 +181,26 @@ describe('legacy FSRS/data compatibility', () => {
     expect(recovered.points[0].leaks).toEqual([])
     expect(recovered.logs[1].preRevealDraft).toBe('概念与机制'); expect(recovered.logs[1].durationSeconds).toBe(10)
   })
+  it('keeps unresolved leak deadlines across days and adds only newly missed labels', () => {
+    const s = platform([point('p')])
+    const first = reviewGeneral(s.general, 'p', 2, ['概念'], 'first', now)
+    const due = first.points[0].leaks![0].due
+    const second = reviewGeneral(first, 'p', 2, [], 'second', now + 2 * DAY)
+    expect(second.points[0].leaks).toEqual([{ label: '机制', due }, { label: '概念', due: new Date(2026, 9, 16).getTime() }])
+    expect(second.logs[1].previousState!.leaks).toEqual(first.points[0].leaks)
+    expect(first.points[0].leaks).toEqual([{ label: '机制', due }])
+    expect(reviewGeneral(second, 'p', 2, [], 'second', now + 3 * DAY)).toBe(second)
+    const resolved = reviewGeneral(second, 'p', 3, ['机制'], 'third', now + 3 * DAY)
+    expect(resolved.points[0].leaks).toEqual([{ label: '概念', due: new Date(2026, 9, 16).getTime() }])
+  })
+  it('deduplicates imported leaks using the earliest deadline without dropping other unresolved labels', () => {
+    const p = point('p')
+    p.checklist = ['概念', '机制', '机制']
+    p.leaks = [{ label: '机制', due: now + DAY }, { label: '机制', due: now - DAY }, { label: '旧核对项', due: now }, { label: '概念', due: now }]
+    const result = reviewGeneral(platform([p]).general, 'p', 2, ['概念'], 'dedup', now)
+    expect(result.points[0].leaks).toEqual([{ label: '机制', due: now - DAY }, { label: '旧核对项', due: now }])
+    expect(result.logs[0].previousState!.leaks).toEqual(p.leaks)
+  })
   it('refuses malformed/duplicate points rather than silently deleting them', () => {
     expect(() => normalizeGeneral({ points: [point('p'), point('p')] })).toThrow()
     expect(() => normalizeGeneral({ points: [{ ...point('p'), dueDate: 'tomorrow' }] })).toThrow()
