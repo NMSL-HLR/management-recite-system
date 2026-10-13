@@ -13,6 +13,7 @@ import { applyUiSettingsToDocument, normalizeUiSettings } from './uiSettings'
 import { DEFAULT_DAY } from '../engine/dayplan'
 import { DEFAULT_GAPS } from '../engine/schedule'
 import type { ExamState, Persisted, RecallState, RelationStatus, ViewId } from '../types'
+import { validateMrcFields } from '../fusion/validateMrc'
 
 export interface AppApi {
   state: CoachPersisted
@@ -109,6 +110,7 @@ function loadInitial(): { state: Persisted; warning: string | null; hold: boolea
       state.sourceHashes = { ...content.meta.sourceHashes }
       warning = unmatched.length ? `资料版本有变化。${unmatched.length} 条旧记录对不上，已放进迁移待查，没有删除。` : '资料版本有变化。已按稳定 itemId 接上现有记录。'
     }
+    validateMrcFields(state)
     return { state, warning, hold: false }
   } catch {
     return { state: defaultPersisted(), warning: '本地记录损坏。程序没有覆盖原内容。', hold: true }

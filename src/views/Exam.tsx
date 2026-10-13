@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { content, getItem } from '../content'
 import { advanceExamQuestion, createExamState, examQuestionStartedAt, finalizeQuestionDuration, questionRemainSeconds } from '../engine/exam'
 import { SectionList } from '../components/render'
@@ -10,11 +10,18 @@ import type { ExamState, StudyItem } from '../types'
 export function Exam() {
   const app = useApp()
   const exam = app.state.exam
+  const [clock, setClock] = useState(() => Date.now())
+  useEffect(() => {
+    if (!exam) return
+    const timer = window.setInterval(() => setClock(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [exam?.id])
   if (!exam) return <ExamSetup />
   const item = getItem(exam.itemIds[exam.index])
   if (!item) return <p>题目缺失。</p>
   const answer = exam.answers[item.id] || { text: '', revealed: false }
-  const remain = questionRemainSeconds(exam, app.now)
+  const remain = answer.revealed && answer.durationSeconds !== undefined && exam.limitSeconds !== null
+    ? exam.limitSeconds - answer.durationSeconds : questionRemainSeconds(exam, Math.max(clock, exam.questionStartedAt ?? exam.startedAt))
   const update = (partial: Partial<ExamState>) => app.patchExam({ ...exam, ...partial })
   const goNext = () => app.patchExam(advanceExamQuestion(exam, Date.now()))
   const reveal = () => {
@@ -38,9 +45,12 @@ export function Exam() {
       <textarea
         rows={12}
         value={answer.text}
+        readOnly={answer.revealed}
+        aria-label={answer.revealed ? '已冻结的闭卷作答' : '闭卷作答'}
         onChange={(event) => update({ answers: { ...exam.answers, [item.id]: { ...answer, text: event.target.value } } })}
         placeholder="限时书面骨架。程序不按字符相似度打分。"
       />
+      {answer.revealed && <p className="muted">作答已冻结，保留揭晓答案前的真实输出。</p>}
       <div className="actions">
         {!answer.revealed ? (
           <button className="btn primary" type="button" onClick={reveal}>对照原文</button>
@@ -97,7 +107,7 @@ function ExamSetup() {
       <h1>闭卷考试</h1>
       <p>题目跨章节打乱。限时写作只保留原文对照，不生成分数。</p>
       <label className="field">每题分钟
-        <input type="number" min={1} value={minutes} onChange={(event) => setMinutes(Number(event.target.value) || 10)} />
+        <input type="number" min={1} value={minutes} onChange={(event) => setMinutes(Math.max(1, Number(event.target.value) || 1))} />
       </label>
       <div className="actions">
         <button className="btn primary" type="button" onClick={() => start('随机 A 题', pool.filter((item) => item.coreA), null)}>随机 A 题</button>

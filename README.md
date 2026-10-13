@@ -1,6 +1,12 @@
 # 346 全科备考教练 · 融合 Alpha
 
-打开 `346_Fusion_Alpha.html` 即可离线使用。整合分支：`feat/346-fusion-alpha`。管理学调用 MRC；体育概论、运动生理学和其他旧知识条目调用通用 FSRS 模块。
+打开 `346_Fusion_Alpha.html` 即可离线使用。本次界面与审计分支：`feat/346-ui-audit`；上一版保留在 `feat/346-fusion-alpha`。管理学调用 MRC；体育概论、运动生理学和其他旧知识条目调用通用 FSRS 模块。
+
+## 界面与审计更新
+
+沿用旧 346 记忆引擎的浅绿背景、描边卡片与硬阴影，恢复「灵像素／通透风／像素风」三主题。桌面侧栏、手机底部导航；右上角或侧栏底部可切换主题。管理学阅读字号、暗色与专注模式继续可用。
+
+本次修复导入字段校验、设置丢失、跨归档重复日志、恢复中断与考试作答冻结等问题。详见[审计报告](reports/ui-audit.md)及[离线回归结果](reports/fusion-file-check.json)。
 
 ## 首次使用
 
@@ -30,6 +36,8 @@
 - 冻结产物：`MRC_V2.2.2_沉浸诵读冻结版.html`、`MRC_V3_Alpha_Lite.html`、`frozen/346_V13_original.html`。首次从Alpha Lite升级会接续当日预算与完成任务。
 
 ## 开发与验收
+
+需要 Node.js 22.12+（本次使用 24.19）。
 
 ```bash
 npm ci

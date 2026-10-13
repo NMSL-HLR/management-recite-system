@@ -3,6 +3,7 @@ import { AppApiOverride, useApp } from '../state/store'
 import { content } from '../content'
 import { DATA_KEY } from '../engine/storage'
 import { addGeneralPoint, reviewGeneral } from '../general/data'
+import { defaultPersisted } from '../state/defaults'
 import type { Rating } from '../general/types'
 import { beginTask, decide, finishTask, lockChapters, reconcileMrc, defaultFusion, adoptAlphaDay } from './planner'
 import { inspectFusionImport, loadPlatform, makeEnvelope, validateMrcSnapshot, validatePlatform, writeBundle, type FusionImportPlan } from './transfer'
@@ -79,11 +80,12 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     const before = current()
     const decision = decide(before, mrc.state, Date.now())
     if (decision.kind === 'resume') {
+      if (!persist(before)) return
       if (decision.task.module === 'mrc') {
         if (!mrc.openModuleRecall(decision.task.itemId, decision.task.startedAt)) { setMessage('管理学草稿与当前任务冲突，原草稿已保留，请导出备份。'); return }
         mrc.setView('recall')
       }
-      persist(before); setPanel(decision.task.module === 'mrc' ? 'mrc' : 'general'); return
+      setPanel(decision.task.module === 'mrc' ? 'mrc' : 'general'); return
     }
     const candidate = chosen ?? (decision.kind === 'next' ? decision.candidate : null)
     if (!candidate) { setPanel('today'); return }
@@ -113,7 +115,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     },
     setPolicy: (subject, patch) => {
       const next = current()
-      const policy = { ...(next.settings.subjects[subject] ?? { weight: 1, newCap: 3, chapterCap: 3 }), ...patch }
+      const policy = { ...(Object.hasOwn(next.settings.subjects, subject) ? next.settings.subjects[subject] : { weight: 1, newCap: 3, chapterCap: 3 }), ...patch }
       if (!Number.isInteger(policy.newCap) || policy.newCap < 0 || policy.newCap > 50 || !Number.isInteger(policy.chapterCap) || policy.chapterCap < 0 || policy.chapterCap > 20 || !Number.isFinite(policy.weight) || policy.weight < 1 || policy.weight > 10) return
       const selected = { ...next.day.selectedChapters }
       delete selected[subject] // Explicit policy change is the only same-day scope reset.
@@ -148,7 +150,8 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
       if (!importPlan) return
       if (importRevision.current !== JSON.stringify([ref.current, mrc.state])) { setMessage('预览后学习记录已变化，请重新选择备份预览。'); setImportPlan(null); return }
       const wrote = writeBundle(localStorage, importPlan.platform, importPlan.mrc)
-      if (!wrote.ok) { setMessage(wrote.error ?? '导入失败'); if (localStorage.getItem(JOURNAL_KEY)) { blockedRef.current = true; setBlocked(true) } return }
+      if (!wrote.ok) { setMessage(wrote.error ?? '导入失败'); if (localStorage.getItem(JOURNAL_KEY)) { blockedRef.current = true; setBlocked(true); window.location.reload() } return }
+      if (wrote.needsRecovery) { window.location.reload(); return }
       ref.current = importPlan.platform; setState(importPlan.platform); mrc.adoptMrcState(importPlan.mrc)
       blockedRef.current = false; setBlocked(false); setImportPlan(null); setPanel('today'); setMessage('导入完成，导入前的数据已备份，可在设置中回滚。')
     },
@@ -163,15 +166,17 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
         setMessage('已导出受保护的原始存储。该文件用于恢复排查，不能作为正常整包导入；原记录仍未覆盖。')
       } else downloadJson(makeEnvelope(ref.current, mrc.state), `346-Fusion-${new Date().toISOString().slice(0, 10)}.json`)
     },
-    exportGeneral: () => downloadJson(ref.current.general, '346-memory-module.json'),
+    exportGeneral: () => { if (blockedRef.current) { api.exportAll(); return } downloadJson(ref.current.general, '346-memory-module.json') },
     rollback: () => {
       try {
         const raw = localStorage.getItem(FUSION_BACKUP_KEY)
         if (!raw) throw new Error('没有找到整包导入前备份。')
         const previous = JSON.parse(raw)
+        if (!previous || typeof previous !== 'object' || ![PLATFORM_KEY, DATA_KEY].every(key => previous[key] === null || typeof previous[key] === 'string')) throw new Error('导入前备份结构不完整，当前数据未改动。')
         const platform = previous[PLATFORM_KEY] ? validatePlatform(JSON.parse(previous[PLATFORM_KEY])) : defaultFusion(Date.now())
-        const mrcState = previous[DATA_KEY] ? validateMrcSnapshot(JSON.parse(previous[DATA_KEY]), mrc.state) : mrc.state
+        const mrcState = previous[DATA_KEY] ? validateMrcSnapshot(JSON.parse(previous[DATA_KEY]), mrc.state) : defaultPersisted()
         const wrote = writeBundle(localStorage, platform, mrcState, false)
+        if (wrote.needsRecovery || (!wrote.ok && localStorage.getItem(JOURNAL_KEY))) { window.location.reload(); return }
         if (!wrote.ok) throw new Error(wrote.error)
         ref.current = platform; setState(platform); mrc.adoptMrcState(mrcState); blockedRef.current = false; setBlocked(false); setImportPlan(null); setPanel('today'); setMessage('已恢复整包导入前的两个模块记录。')
       } catch (error) { setMessage(error instanceof Error ? error.message : '回滚失败') }
@@ -179,6 +184,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     dismiss: () => setMessage(null),
   }
   const override = { ...mrc, stageImport: (raw: string) => { api.stageImport(raw); setPanel('settings') }, confirmImport: api.confirmImport, cancelImport: api.cancelImport, rollback: api.rollback,
+    setLibrary: (partial: Parameters<typeof mrc.setLibrary>[0]) => { mrc.setLibrary(partial); setPanel('mrc') },
     setView: (view: typeof mrc.state.view) => { if (view === 'today') setPanel('today'); else { mrc.setView(view); setPanel('mrc') } },
     startRecallItem: openMrcItem, startQueue: (ids: string[]) => { if (ids[0]) openMrcItem(ids[0]) }, startCoach: () => start(),
     recallNext: () => start(), closeCoachDay: api.closeDay, setCoachBudget: api.setMinutes }

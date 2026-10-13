@@ -15,11 +15,19 @@ import { GeneralTraining } from './views/GeneralTraining'
 import { FusionSettingsView } from './views/Settings'
 import { FusionRecords } from './views/Records'
 import type { Panel } from './types'
+import { Icon } from './Icon'
+import { SKINS, useMemoryTheme } from './theme'
 
 const NAV: { id: Panel; label: string }[] = [{ id: 'today', label: '今日训练' }, { id: 'library', label: '资料库' }, { id: 'records', label: '学习记录' }, { id: 'settings', label: '设置数据' }]
 export function FusionApp() {
   const f = useFusion()
   const app = useApp()
+  const theme = useMemoryTheme()
+  const activePanel = f.panel === 'general' ? 'today' : f.panel === 'mrc'
+    ? app.state.view === 'library' ? 'library' : ['archive', 'mistakes'].includes(app.state.view) ? 'records' : ['settings', 'method'].includes(app.state.view) ? 'settings' : 'today'
+    : f.panel
+  const themeButton = <button className="btn theme-switch" onClick={theme.cycle} aria-label={`当前${SKINS[theme.skin].label}，切换到${SKINS[SKINS[theme.skin].next].label}`}><Icon name="palette" /><span>{SKINS[theme.skin].label}</span></button>
+  const navigation = NAV.map((item, index) => <button key={item.id} aria-current={activePanel === item.id ? 'page' : undefined} className={activePanel === item.id ? 'on' : ''} onClick={() => f.open(item.id)}><Icon name={item.id as 'today' | 'library' | 'records' | 'settings'} /><span>{item.label}</span><small>Alt+{index + 1}</small></button>)
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
@@ -30,9 +38,12 @@ export function FusionApp() {
     }
     window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler)
   }, [f, app])
-  return <div className={`shell${app.state.settings.focusReading ? ' focus-reading' : ''}`}>
-    <aside className="side"><p className="brand">346 全科备考教练<br /><small>管理学 · 生理学 · 体育概论</small></p><nav>{NAV.map((item, index) => <button key={item.id} className={f.panel === item.id || (item.id === 'today' && ['general', 'mrc'].includes(f.panel) && app.state.view === 'recall') ? 'on' : ''} onClick={() => f.open(item.id)}><small>Alt+{index + 1}</small>{item.label}</button>)}</nav></aside>
-    <main>
+  return <div className={`shell memory-shell${app.state.settings.focusReading ? ' focus-reading' : ''}`}>
+    <a className="skip-link" href="#study-main">跳到学习内容</a>
+    <aside className="side"><div className="brand"><span className="brand-mark"><Icon name="book" size={26} /></span><strong>346 记忆引擎</strong><small>SPACED REPETITION</small></div><nav aria-label="主导航">{navigation}</nav><div className="side-bottom">{themeButton}<p>管理学 · 生理学 · 体育概论<br />本地学习，按自己的节奏。</p></div></aside>
+    <header className="mobile-topbar"><strong>346 记忆引擎</strong>{themeButton}</header>
+    <main id="study-main" tabIndex={-1}>
+      {theme.warning && <p className="warnbox" role="status">{theme.warning}</p>}
       {app.warning && <aside className="warnbox banner"><p>{app.warning}</p><button className="btn" onClick={app.dismissWarning}>知道了</button></aside>}
       {f.message && <aside className="warnbox banner" role="alert"><p>{f.message}</p><button className="btn" onClick={f.dismiss}>知道了</button></aside>}
       {f.panel === 'today' && <FusionToday />}
@@ -48,6 +59,7 @@ export function FusionApp() {
         {app.state.view === 'settings' && <Settings />}
       </>}
     </main>
+    <nav className="mobile-nav" aria-label="移动端主导航">{navigation}</nav>
     {f.panel === 'mrc' && <ReadingToolbar />}
   </div>
 }

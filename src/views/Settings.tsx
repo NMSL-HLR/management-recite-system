@@ -109,11 +109,11 @@ export function Settings() {
       <section className="card">
         <h2>间隔（分钟 / 小时 / 天）</h2>
         <div className="form-grid">
-          <NumberField label="重学分钟" value={settings.gaps.relearnedMin} onChange={(relearnedMin) => app.updateSettings({ gaps: { ...settings.gaps, relearnedMin } })} />
-          <NumberField label="提示依赖分钟" value={settings.gaps.cueMin} onChange={(cueMin) => app.updateSettings({ gaps: { ...settings.gaps, cueMin } })} />
-          <NumberField label="少量遗漏小时" value={settings.gaps.minorHours} onChange={(minorHours) => app.updateSettings({ gaps: { ...settings.gaps, minorHours } })} />
-          <NumberField label="独立后天数" value={settings.gaps.independentDays} onChange={(independentDays) => app.updateSettings({ gaps: { ...settings.gaps, independentDays } })} />
-          <NumberField label="再次独立后天数" value={settings.gaps.independentAgainDays} onChange={(independentAgainDays) => app.updateSettings({ gaps: { ...settings.gaps, independentAgainDays } })} />
+          <NumberField min={0.01} label="重学分钟" value={settings.gaps.relearnedMin} onChange={(relearnedMin) => app.updateSettings({ gaps: { ...settings.gaps, relearnedMin } })} />
+          <NumberField min={0.01} label="提示依赖分钟" value={settings.gaps.cueMin} onChange={(cueMin) => app.updateSettings({ gaps: { ...settings.gaps, cueMin } })} />
+          <NumberField min={0.01} label="少量遗漏小时" value={settings.gaps.minorHours} onChange={(minorHours) => app.updateSettings({ gaps: { ...settings.gaps, minorHours } })} />
+          <NumberField min={0.01} label="独立后天数" value={settings.gaps.independentDays} onChange={(independentDays) => app.updateSettings({ gaps: { ...settings.gaps, independentDays } })} />
+          <NumberField min={0.01} label="再次独立后天数" value={settings.gaps.independentAgainDays} onChange={(independentAgainDays) => app.updateSettings({ gaps: { ...settings.gaps, independentAgainDays } })} />
         </div>
       </section>
       <section className="card">
@@ -178,10 +178,10 @@ function StatusButtons({ current, onChange }: { current: RelationStatus; onChang
   )
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+function NumberField({ label, value, onChange, min = 0 }: { label: string; value: number; onChange: (value: number) => void; min?: number }) {
   return (
     <label className="field">{label}
-      <input type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <input type="number" min={min} step="any" value={value} onChange={(event) => { const next = event.target.valueAsNumber; if (Number.isFinite(next) && next >= min) onChange(next) }} />
     </label>
   )
 }

@@ -18,6 +18,7 @@ export function normalizeGeneral(input: unknown): GeneralData {
   const points = input.points.map((raw, index): GeneralPoint => {
     if (!object(raw) || typeof raw.id !== 'string' || !raw.id || ids.has(raw.id)) throw new Error(`第 ${index + 1} 条知识点缺少唯一 id。`)
     ids.add(raw.id)
+    if (raw.quotaChapterOverride !== undefined && typeof raw.quotaChapterOverride !== 'string') throw new Error(`知识点 ${raw.id} 的章节不合法。`)
     if (typeof raw.subject !== 'string' || !raw.subject.trim() || typeof raw.title !== 'string' || typeof raw.content !== 'string') throw new Error(`知识点 ${raw.id} 缺少科目、标题或正文。`)
     for (const key of ['createdAt', 'dueDate', 'interval', 'repetitions', 'totalReviews', 'lapses']) {
       if (!finite(raw[key]) || raw[key] < 0) throw new Error(`知识点 ${raw.id} 的 ${key} 不合法。`)
@@ -43,10 +44,16 @@ export function normalizeGeneral(input: unknown): GeneralData {
     for (const row of value) {
       if (!object(row) || typeof row.id !== 'string' || logIds.has(row.id) || typeof row.pointId !== 'string' || typeof row.subject !== 'string' || !finite(row.reviewedAt) || ![1, 2, 3, 4].includes(Number(row.rating)) || !finite(row.intervalBefore) || !finite(row.intervalAfter)) throw new Error('有复习日志格式不合法或 id 重复。')
       logIds.add(row.id)
+      if (typeof row.rating !== 'number' || (row.preRevealDraft !== undefined && typeof row.preRevealDraft !== 'string') || (row.checkedLabels !== undefined && (!Array.isArray(row.checkedLabels) || row.checkedLabels.some(x => typeof x !== 'string'))) || (row.durationSeconds !== undefined && (!finite(row.durationSeconds) || row.durationSeconds < 0))) throw new Error('复习日志的草稿或核对记录不合法。')
     }
     return value as ReviewLog[]
   }
-  return { ...input, points, logs: validateLogs(input.logs), logsArchive: validateLogs(input.logsArchive),
+  const logs = validateLogs(input.logs), logsArchive = validateLogs(input.logsArchive)
+  const live = new Map(logs.map(l => [l.id, l]))
+  for (const row of logsArchive) {
+    if (live.has(row.id) && JSON.stringify(live.get(row.id)) !== JSON.stringify(row)) throw new Error('活动与归档日志存在同 id 的不同记录，请检查备份。')
+  }
+  return { ...input, points, logs, logsArchive: logsArchive.filter(l => !live.has(l.id)),
     subjects: Array.isArray(input.subjects) && input.subjects.every(x => typeof x === 'string') ? input.subjects : emptyGeneral().subjects,
     settings: object(input.settings) ? input.settings : {} }
 }

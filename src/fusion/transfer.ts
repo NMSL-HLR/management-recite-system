@@ -1,4 +1,5 @@
 import { content } from '../content'
+import { validateMrcFields } from './validateMrc'
 import type { CoachPersisted } from '../coach/types'
 import { defaultPersisted, defaultSettings } from '../state/defaults'
 import { normalizeUiSettings } from '../state/uiSettings'
@@ -21,13 +22,13 @@ export function validatePlatform(value: unknown): FusionState {
   for (const chapters of Object.values(day.selectedChapters)) {
     if (!Array.isArray(chapters) || chapters.some(x => typeof x !== 'string')) throw new Error('章节范围不合法。')
   }
-  const validTask = (t: unknown) => obj(t) && typeof t.id === 'string' && typeof t.itemId === 'string' && typeof t.subject === 'string' && typeof t.title === 'string' && typeof t.chapterKey === 'string' && typeof t.reason === 'string' && typeof t.isNew === 'boolean' && ['mrc', 'general'].includes(String(t.module)) && ['in_progress', 'completed'].includes(String(t.status)) && num(t.estimatedMinutes, 5, 120) && num(t.startedAt) && (t.status !== 'completed' || (typeof t.resultId === 'string' && num(t.completedAt)))
+  const validTask = (t: unknown) => obj(t) && typeof t.id === 'string' && typeof t.itemId === 'string' && typeof t.subject === 'string' && typeof t.title === 'string' && typeof t.chapterKey === 'string' && typeof t.reason === 'string' && typeof t.isNew === 'boolean' && typeof t.module === 'string' && ['mrc', 'general'].includes(t.module) && typeof t.status === 'string' && ['in_progress', 'completed'].includes(t.status) && num(t.estimatedMinutes, 5, 120) && num(t.startedAt) && (t.status !== 'completed' || (typeof t.resultId === 'string' && num(t.completedAt)))
   if (day.tasks.some(t => !validTask(t)) || new Set(day.tasks.map(t => t.id)).size !== day.tasks.length || (active !== null && !validTask(active))) throw new Error('训练任务不合法。')
   if (active !== null && !day.tasks.some(t => obj(active) && Object.keys(t).length === Object.keys(active).length && Object.entries(t).every(([key, v]) => active[key] === v))) throw new Error('当前任务与今日计划不一致。')
   if (day.tasks.filter(t => t.status === 'in_progress').length > 1 || (day.tasks.some(t => t.status === 'in_progress') && (!obj(active) || active.status !== 'in_progress'))) throw new Error('存在冲突的未完成任务。')
   const general = normalizeGeneral(value.general)
   if (session !== null) {
-    if (!obj(session) || !obj(active) || active.module !== 'general' || session.taskId !== active.id || session.itemId !== active.itemId || !['draft', 'compare', 'done'].includes(String(session.phase)) || typeof session.draft !== 'string' || (session.frozenDraft !== null && typeof session.frozenDraft !== 'string') || !Array.isArray(session.checked) || session.checked.some(x => typeof x !== 'string') || (session.rating !== null && ![1, 2, 3, 4].includes(Number(session.rating)))) throw new Error('通用训练草稿不合法。')
+    if (!obj(session) || !obj(active) || active.module !== 'general' || session.taskId !== active.id || session.itemId !== active.itemId || (typeof session.phase !== 'string' || !['draft', 'compare', 'done'].includes(session.phase)) || typeof session.draft !== 'string' || (session.frozenDraft !== null && typeof session.frozenDraft !== 'string') || !Array.isArray(session.checked) || session.checked.some(x => typeof x !== 'string') || (session.rating !== null && (typeof session.rating !== 'number' || ![1, 2, 3, 4].includes(session.rating)))) throw new Error('通用训练草稿不合法。')
     if (!general.points.some(p => p.id === session.itemId && !isLegacyManagement(p.subject))) throw new Error('草稿对应的知识点不存在。')
     if ((active.status === 'completed') !== (session.phase === 'done')) throw new Error('草稿阶段与任务状态不一致。')
     if (session.phase !== 'draft' && typeof session.frozenDraft !== 'string') throw new Error('揭晓前草稿缺失。')
@@ -56,6 +57,7 @@ export function validateMrcSnapshot(value: unknown, current: CoachPersisted): Co
     const e = parsed.exam
     if (!obj(e) || typeof e.id !== 'string' || !Array.isArray(e.itemIds) || e.itemIds.some(id => !content.items.some(i => i.id === id)) || !num(e.index) || !num(e.startedAt) || !obj(e.answers) || (e.limitSeconds !== null && !num(e.limitSeconds, 1))) throw new Error('闭卷考试状态不合法。')
   }
+  validateMrcFields(parsed)
   return { ...defaultPersisted(), ...parsed, settings: { ...defaultSettings(), ...parsed.settings, ...normalizeUiSettings(parsed.settings),
     gaps: { ...defaultSettings().gaps, ...parsed.settings.gaps }, day: { ...defaultSettings().day, ...parsed.settings.day } } }
 }
@@ -76,8 +78,10 @@ export function inspectFusionImport(raw: string, platform: FusionState, mrc: Coa
   if (Array.isArray(data.points)) {
     const incoming = normalizeGeneral(data)
     const merge = <T extends { id: string }>(old: T[], fresh: T[]) => [...new Map([...old, ...fresh].map(x => [x.id, x])).values()]
+    const incomingIds = new Set([...incoming.logs, ...incoming.logsArchive].map(l => l.id))
     const general = { ...platform.general, ...incoming,
-      points: merge(platform.general.points, incoming.points), logs: merge(platform.general.logs, incoming.logs), logsArchive: merge(platform.general.logsArchive, incoming.logsArchive),
+      settings: { ...platform.general.settings, ...incoming.settings },
+      points: merge(platform.general.points, incoming.points), logs: merge(platform.general.logs.filter(l => !incomingIds.has(l.id)), incoming.logs), logsArchive: merge(platform.general.logsArchive.filter(l => !incomingIds.has(l.id)), incoming.logsArchive),
       subjects: [...new Set([...platform.general.subjects, ...incoming.subjects])] }
     const overlap = incoming.points.filter(p => platform.general.points.some(o => o.id === p.id)).length
     const legacy = incoming.points.filter(p => isLegacyManagement(p.subject)).length
@@ -86,14 +90,14 @@ export function inspectFusionImport(raw: string, platform: FusionState, mrc: Coa
   }
   const plan = inspectImport(raw, mrc, content.meta, new Set(content.items.map(i => i.id)))
   if (!plan.ok) throw new Error(plan.error)
-  return { platform, mrc: plan.next, kind: '管理学 JSON', summary: `按原导入规则合并：新增 ${plan.summary.added} 条、替换 ${plan.summary.replaced} 条、待查 ${plan.summary.unmatched} 条。${plan.summary.message}` }
+  return { platform, mrc: validateMrcSnapshot(plan.next, mrc), kind: '管理学 JSON', summary: `按原导入规则合并：新增 ${plan.summary.added} 条、替换 ${plan.summary.replaced} 条、待查 ${plan.summary.unmatched} 条。${plan.summary.message}` }
 }
 export function makeEnvelope(platform: FusionState, mrc: CoachPersisted) {
   return { format: '346-fusion', platformVersion: 1, exportedAt: new Date().toISOString(), platform, mrc }
 }
 
 /** Journaled two-key transaction; committed journal survives a failed remove and replays both new values. */
-export function writeBundle(kv: Kv, platform: FusionState, mrc: CoachPersisted, backup = true): { ok: boolean; error?: string } {
+export function writeBundle(kv: Kv, platform: FusionState, mrc: CoachPersisted, backup = true): { ok: boolean; error?: string; needsRecovery?: boolean } {
   let journalWritten = false
   let previous: Record<string, string | null> = {}
   try {
@@ -104,7 +108,7 @@ export function writeBundle(kv: Kv, platform: FusionState, mrc: CoachPersisted, 
     journalWritten = true
     for (const [key, value] of Object.entries(next)) kv.setItem(key, value)
     kv.setItem(JOURNAL_KEY, JSON.stringify({ phase: 'committed', previous, next }))
-    try { kv.removeItem(JOURNAL_KEY) } catch { /* recovery replays committed values */ }
+    try { kv.removeItem(JOURNAL_KEY) } catch { return { ok: true, needsRecovery: true } }
     return { ok: true }
   } catch (error) {
     if (journalWritten) {
@@ -124,9 +128,11 @@ export function recoverImport(kv: Kv): string | null {
     if (!obj(journal) || !['pending', 'committed'].includes(String(journal.phase)) || !obj(journal.previous) || !obj(journal.next)) throw new Error('恢复日志不合法')
     const values = journal.phase === 'committed' ? journal.next : journal.previous
     for (const key of [PLATFORM_KEY, DATA_KEY]) {
+      if (values[key] !== null && typeof values[key] !== 'string') throw new Error('恢复值不合法')
+    }
+    for (const key of [PLATFORM_KEY, DATA_KEY]) {
       const value = values[key]
-      if (value !== null && typeof value !== 'string') throw new Error('恢复值不合法')
-      value === null ? kv.removeItem(key) : kv.setItem(key, value)
+      value === null ? kv.removeItem(key) : kv.setItem(key, value as string)
     }
     kv.removeItem(JOURNAL_KEY)
     return journal.phase === 'committed' ? '已恢复上次完成的整包导入。' : '上次导入中断，已恢复到导入前。'
