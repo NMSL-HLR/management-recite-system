@@ -1,5 +1,6 @@
 import { content } from '../content'
 import { validateMrcFields } from './validateMrc'
+import { mergeTextbook } from '../general/textbook'
 import type { CoachPersisted } from '../coach/types'
 import { defaultPersisted, defaultSettings } from '../state/defaults'
 import { normalizeUiSettings } from '../state/uiSettings'
@@ -62,10 +63,23 @@ export function validateMrcSnapshot(value: unknown, current: CoachPersisted): Co
     gaps: { ...defaultSettings().gaps, ...parsed.settings.gaps }, day: { ...defaultSettings().day, ...parsed.settings.day } } }
 }
 
-export interface FusionImportPlan { platform: FusionState; mrc: CoachPersisted; kind: '旧记忆引擎' | '管理学 JSON' | '全科整包'; summary: string }
+export interface FusionImportPlan { platform: FusionState; mrc: CoachPersisted; kind: '旧记忆引擎' | '管理学 JSON' | '全科整包' | '教材资料'; summary: string }
 export function inspectFusionImport(raw: string, platform: FusionState, mrc: CoachPersisted): FusionImportPlan {
   const data: unknown = JSON.parse(raw)
   if (!obj(data)) throw new Error('文件不是有效的备份对象。')
+  if (data.format === '346-textbook') {
+    if (data.packVersion !== 1 || typeof data.packId !== 'string' || !data.packId) throw new Error('教材资料版本或标识不合法。')
+    if (!Array.isArray(data.points) || (data.referencePoints !== undefined && !Array.isArray(data.referencePoints))) throw new Error('教材题目应为数组。')
+    const incoming = normalizeGeneral({ ...data, points: [...data.points, ...(Array.isArray(data.referencePoints) ? data.referencePoints : [])] })
+    // Older builds preserve the textbook format field in later personal exports.
+    // Those exports must use history merge, not the content-only path that ignores logs.
+    if (incoming.logs.length || incoming.logsArchive.length || incoming.points.some(p => p.totalReviews > 0 || p.lastReviewedAt !== undefined)) {
+      return inspectFusionImport(JSON.stringify({ ...incoming, format: '346-legacy-progress' }), platform, mrc)
+    }
+    const general = mergeTextbook(platform.general, incoming.points, data.packId)
+    const added = general.points.length - platform.general.points.length
+    return { platform: { ...platform, general }, mrc, kind: '教材资料', summary: `共 ${incoming.points.length} 题，新增 ${added} 题，已有 ${incoming.points.length - added} 题保持原样。包含待补充题 ${incoming.points.filter(p => p.trainingBlocked).length} 道，仅供查询。不会覆盖已有作答、评分、复测时间、当前草稿或今日预算。` }
+  }
   if (data.format === '346-fusion') {
     if (data.platformVersion !== 1) throw new Error('整包备份版本比程序新或无法识别。')
     const next = validatePlatform(data.platform)

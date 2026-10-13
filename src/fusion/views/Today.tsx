@@ -27,6 +27,6 @@ export function FusionToday() {
         <button className="btn ghost" onClick={f.closeDay}>今天先到这里</button>
       </details>
     </section>
-    {emptySubjects.length > 0 && <aside className="subject-note"><Icon name="library" /><div><p>管理学已就绪，其他科目随时加入。</p><p className="muted">{emptySubjects.join('、')}可在设置中导入旧 JSON，或到资料库录入教材。</p></div></aside>}
+    {emptySubjects.length > 0 && <aside className="subject-note"><Icon name="library" /><div><p>{emptySubjects.includes('运动生理学') ? '管理学资料已就绪。' : '管理学、运动生理学资料已就绪。'}</p><p className="muted">{emptySubjects.join('、')}可在设置中导入 JSON，或到资料库录入教材。</p></div></aside>}
   </div>
 }

@@ -7,6 +7,7 @@ export const JOURNAL_KEY = '346-fusion-import-journal-v1'
 
 export interface GeneralPoint extends KnowledgePoint {
   quotaChapterOverride?: string
+  trainingBlocked?: boolean
   [key: string]: unknown
 }
 export interface GeneralData {

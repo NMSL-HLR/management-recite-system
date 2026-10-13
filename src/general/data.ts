@@ -18,6 +18,7 @@ export function normalizeGeneral(input: unknown): GeneralData {
   const points = input.points.map((raw, index): GeneralPoint => {
     if (!object(raw) || typeof raw.id !== 'string' || !raw.id || ids.has(raw.id)) throw new Error(`第 ${index + 1} 条知识点缺少唯一 id。`)
     ids.add(raw.id)
+    if (raw.trainingBlocked !== undefined && typeof raw.trainingBlocked !== 'boolean') throw new Error(`知识点 ${raw.id} 的训练状态不合法。`)
     if (raw.quotaChapterOverride !== undefined && typeof raw.quotaChapterOverride !== 'string') throw new Error(`知识点 ${raw.id} 的章节不合法。`)
     if (typeof raw.subject !== 'string' || !raw.subject.trim() || typeof raw.title !== 'string' || typeof raw.content !== 'string') throw new Error(`知识点 ${raw.id} 缺少科目、标题或正文。`)
     for (const key of ['createdAt', 'dueDate', 'interval', 'repetitions', 'totalReviews', 'lapses']) {

@@ -4,7 +4,7 @@ import { localDate, validCoachState } from '../coach/planner'
 import type { CoachPersisted } from '../coach/types'
 import { content } from '../content'
 import { isLegacyManagement, emptyGeneral } from '../general/data'
-import { naturalTitleCompare } from '../general/naturalSort'
+import { compareGeneralPoints } from '../general/textbook'
 import type { Candidate, FusionDay, FusionDecision, FusionSettings, FusionState, GeneralPoint, SubjectPolicy, TrainingTask } from './types'
 import { MANAGEMENT } from './types'
 
@@ -62,8 +62,8 @@ export function allCandidates(state: FusionState, mrc: CoachPersisted, now: numb
     isNew: !c.latest, reason: c.reason, estimatedMinutes: c.estimatedMinutes,
     dueAt: c.latest?.dueAt ?? now, tier: c.latest ? 0 : c.item.coreA ? 1 : 2 + index / 1000,
   }))
-  const general = state.general.points.filter(p => !isLegacyManagement(p.subject) && p.dueDate <= now)
-    .sort((a, b) => a.dueDate - b.dueDate || naturalTitleCompare(a.title, b.title))
+  const general = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && p.dueDate <= now)
+    .sort((a, b) => a.dueDate - b.dueDate || compareGeneralPoints(a, b))
     .map((p): Candidate => ({ module: 'general', itemId: p.id, subject: p.subject, title: p.title, chapterKey: chapterKey(p),
       isNew: p.totalReviews === 0, reason: p.totalReviews === 0 ? '这条知识点尚未训练，先闭卷输出，再核对原文。' : '复习时间已到，先检查能否独立回忆。',
       estimatedMinutes: p.content.length >= 600 || (p.checklist?.length ?? 0) >= 5 ? 15 : 10,
@@ -124,7 +124,7 @@ export function decide(state: FusionState, mrc: CoachPersisted, now: number): Fu
   if (fits.length) return { kind: 'next', candidate: fits[0] }
   if (candidates.length) return { kind: 'done', reason: candidates.some(c => eligible(state, c)) ? 'budget' : 'quota', pending }
   const mrcDue = nextWaitingDueAt(coachInput(mrc), now)
-  const future = state.general.points.filter(p => !isLegacyManagement(p.subject) && p.dueDate > now).map(p => p.dueDate)
+  const future = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && p.dueDate > now).map(p => p.dueDate)
   if (mrcDue !== null) future.push(mrcDue)
   if (future.length) return { kind: 'wait', dueAt: Math.min(...future), pending }
   return { kind: 'done', reason: 'empty', pending }

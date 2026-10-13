@@ -4,6 +4,7 @@ import { content } from '../content'
 import { DATA_KEY } from '../engine/storage'
 import { addGeneralPoint, reviewGeneral } from '../general/data'
 import { defaultPersisted } from '../state/defaults'
+import { installPhysiology } from '../general/textbook'
 import type { Rating } from '../general/types'
 import { beginTask, decide, finishTask, lockChapters, reconcileMrc, defaultFusion, adoptAlphaDay } from './planner'
 import { inspectFusionImport, loadPlatform, makeEnvelope, validateMrcSnapshot, validatePlatform, writeBundle, type FusionImportPlan } from './transfer'
@@ -45,10 +46,12 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const loaded = useMemo(() => {
     const loaded = loadPlatform(localStorage, Date.now())
     if (!loaded.blocked && !localStorage.getItem(PLATFORM_KEY)) loaded.state = adoptAlphaDay(loaded.state, mrc.state, Date.now())
-    return loaded
+    const general = loaded.blocked || mrc.storageBlocked ? loaded.state.general : installPhysiology(loaded.state.general, Date.now())
+    return { ...loaded, state: { ...loaded.state, general }, needsSave: general !== loaded.state.general }
   }, [])
   const [state, setState] = useState(loaded.state)
   const ref = useRef(state)
+  const textbookPending = useRef(loaded.needsSave)
   const [blocked, setBlocked] = useState(loaded.blocked || Boolean(recoveryMessage?.includes('失败')))
   const blockedRef = useRef(blocked)
   const [panel, setPanel] = useState<Panel>('today')
@@ -68,7 +71,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     } catch (error) { setMessage(`保存失败，当前操作未提交：${error instanceof Error ? error.message : String(error)}。请导出备份。`); return false }
   }
   useEffect(() => {
-    if (prepared !== state && !blockedRef.current) persist(prepared)
+    if ((prepared !== state || textbookPending.current) && !blockedRef.current && persist(prepared)) textbookPending.current = false
     // Reconcile original MRC results after their own successful write; no second Attempt is generated.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, mrc.state, mrc.now])
@@ -149,10 +152,11 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     confirmImport: () => {
       if (!importPlan) return
       if (importRevision.current !== JSON.stringify([ref.current, mrc.state])) { setMessage('预览后学习记录已变化，请重新选择备份预览。'); setImportPlan(null); return }
-      const wrote = writeBundle(localStorage, importPlan.platform, importPlan.mrc)
+      const platform = { ...importPlan.platform, general: installPhysiology(importPlan.platform.general, Date.now()) }
+      const wrote = writeBundle(localStorage, platform, importPlan.mrc)
       if (!wrote.ok) { setMessage(wrote.error ?? '导入失败'); if (localStorage.getItem(JOURNAL_KEY)) { blockedRef.current = true; setBlocked(true); window.location.reload() } return }
       if (wrote.needsRecovery) { window.location.reload(); return }
-      ref.current = importPlan.platform; setState(importPlan.platform); mrc.adoptMrcState(importPlan.mrc)
+      ref.current = platform; setState(platform); mrc.adoptMrcState(importPlan.mrc)
       blockedRef.current = false; setBlocked(false); setImportPlan(null); setPanel('today'); setMessage('导入完成，导入前的数据已备份，可在设置中回滚。')
     },
     cancelImport: () => setImportPlan(null),
@@ -174,6 +178,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
         const previous = JSON.parse(raw)
         if (!previous || typeof previous !== 'object' || ![PLATFORM_KEY, DATA_KEY].every(key => previous[key] === null || typeof previous[key] === 'string')) throw new Error('导入前备份结构不完整，当前数据未改动。')
         const platform = previous[PLATFORM_KEY] ? validatePlatform(JSON.parse(previous[PLATFORM_KEY])) : defaultFusion(Date.now())
+        platform.general = installPhysiology(platform.general, Date.now())
         const mrcState = previous[DATA_KEY] ? validateMrcSnapshot(JSON.parse(previous[DATA_KEY]), mrc.state) : defaultPersisted()
         const wrote = writeBundle(localStorage, platform, mrcState, false)
         if (wrote.needsRecovery || (!wrote.ok && localStorage.getItem(JOURNAL_KEY))) { window.location.reload(); return }

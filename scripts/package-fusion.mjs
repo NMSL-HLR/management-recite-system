@@ -19,7 +19,7 @@ import zipfile
 root=Path('.')
 output=root/'346_Fusion_Alpha_Source.zip'
 with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
-    for name in ['.gitignore','README.md','package.json','package-lock.json','tsconfig.json','vite.config.ts','index.html','346_Fusion_Alpha.html','MRC_V3_Alpha_Lite.html','MRC_V2.2.2_沉浸诵读冻结版.html','dist/index.html']:
+    for name in ['.gitignore','.gitattributes','README.md','package.json','package-lock.json','tsconfig.json','vite.config.ts','index.html','346_Fusion_Alpha.html','346_Physiology_Import.json','MRC_V3_Alpha_Lite.html','MRC_V2.2.2_沉浸诵读冻结版.html','dist/index.html']:
         archive.write(root/name,name)
     for name in ['src','sources','frozen','scripts','tests','reports','docs']:
         for path in sorted((root/name).rglob('*')):

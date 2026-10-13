@@ -26,13 +26,21 @@ async function click(page, label, scope = 'main') {
 async function text(page) { return page.$eval('main', n => n.innerText) }
 async function stores(page) { return page.evaluate((pk, mk) => ({ platform: JSON.parse(localStorage.getItem(pk)), mrc: JSON.parse(localStorage.getItem(mk)) }), PK, MK) }
 async function settle(page, predicate, ...args) { await page.waitForFunction(predicate, { timeout: 12000 }, ...args) }
-async function open() {
+async function open({ withTextbook = false } = {}) {
   const context = await browser.createBrowserContext(); const page = await context.newPage()
   page.on('pageerror', e => errors.push(String(e)))
   page.on('request', r => { if (!/^(file|blob|data):/.test(r.url())) external.push(r.url()) })
   await page.setViewport({ width: 1280, height: 900 })
   await page.goto(target, { waitUntil: 'networkidle0' })
   await settle(page, (pk, mk) => document.body.innerText.includes('今日作战台') && Boolean(localStorage.getItem(pk)) && Boolean(localStorage.getItem(mk)), PK, MK)
+  if (!withTextbook) {
+    // Existing regression cases use an explicitly empty general-module fixture.
+    // Keep the installed marker so these cases do not silently reinstall the textbook on reload.
+    const fixture = await stores(page)
+    fixture.platform.general.points = []
+    fixture.platform.day.selectedChapters = {}
+    await seed(page, fixture.platform, fixture.mrc)
+  }
   return { page, context }
 }
 async function seed(page, platform, mrc) {
@@ -67,7 +75,7 @@ try {
   assert.equal(await page.$eval('.coach-title', n => n.textContent), first.title)
   assert.equal(await page.$$eval('main .btn.primary', n => n.length), 1)
   assert.equal(await page.$$eval('.side nav button', n => n.length), 4)
-  scenarios.push('新用户首先推荐 A 核心题，四个主入口，首页一个主按钮')
+  scenarios.push('空通用题库夹具首先推荐 A 核心题，四个主入口，首页一个主按钮')
   await page.screenshot({ path: join(root, 'reports/fusion-desktop.png'), fullPage: true })
   await click(page, '开始训练'); await page.type('textarea', '刷新后仍在的管理学草稿。')
   await settle(page, mk => JSON.parse(localStorage.getItem(mk)).recall.draft.includes('刷新后'), MK)
@@ -272,8 +280,10 @@ try {
   await click(emptyRollback, '设置数据', '.side'); await click(emptyRollback, '恢复整包导入前备份')
   await settle(emptyRollback, () => document.body.innerText.includes('已恢复整包'))
   assert.deepEqual((await stores(emptyRollback)).mrc.attempts, [])
-  assert.deepEqual((await stores(emptyRollback)).platform.general.points, [])
-  scenarios.push('导入前为空的两个模块可以正确回滚为空，不混入导入后的数据')
+  assert.equal((await stores(emptyRollback)).platform.general.points.length, 60)
+  assert.deepEqual((await stores(emptyRollback)).platform.general.logs, [])
+  assert.ok((await stores(emptyRollback)).platform.general.points.every(p => p.totalReviews === 0))
+  scenarios.push('导入前为空的两个模块恢复空学习记录，内置教材保留且均为未训练')
 
   const { page: cleanup } = await open()
   await importFile(cleanup, old)
@@ -312,6 +322,68 @@ try {
   await examAudit.reload({ waitUntil: 'networkidle0' })
   assert.ok(!(await text(examAudit)).includes('本地记录损坏'))
   scenarios.push('详细设置拒绝负数复测间隔，原调度设置不变且刷新可恢复')
+
+  const { page: textbook } = await open({ withTextbook: true })
+  const textbookInitial = await stores(textbook)
+  const pack = JSON.parse(readFileSync(join(root, 'src/data/physiology/physiology.json'), 'utf8'))
+  assert.equal(textbookInitial.platform.general.points.length, 60)
+  assert.equal(textbookInitial.platform.general.points.filter(p => !p.trainingBlocked).length, 56)
+  assert.equal(await textbook.$eval('.coach-title', n => n.textContent), first.title)
+  await textbook.screenshot({ path: join(root, 'reports/fusion-desktop.png'), fullPage: true })
+  await textbook.setViewport({ width: 375, height: 812 })
+  assert.ok(await textbook.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  assert.ok(await textbook.$eval('[data-testid="start-training"]', n => n.getBoundingClientRect().bottom < innerHeight))
+  await textbook.screenshot({ path: join(root, 'reports/fusion-mobile.png'), fullPage: true })
+  await textbook.setViewport({ width: 1280, height: 900 })
+  await click(textbook, '资料库', '.side')
+  assert.equal(await textbook.$$('ul.plain > li').then(n => n.length), 60)
+  await textbook.select('[aria-label="资料章节"]', '第二章 血液')
+  assert.equal(await textbook.$$('ul.plain > li').then(n => n.length), 5)
+  await textbook.select('[aria-label="资料章节"]', '')
+  await textbook.type('[aria-label="查找资料"]', '内容待补充')
+  assert.equal(await textbook.$$('ul.plain > li').then(n => n.length), 4)
+  await textbook.$eval('[aria-label="查找资料"]', n => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(n, ''); n.dispatchEvent(new Event('input', { bubbles: true })) })
+  await click(textbook, pack.points[0].title)
+  assert.ok((await text(textbook)).includes(pack.points[0].content))
+  await textbook.screenshot({ path: join(root, 'reports/physiology-library.png'), fullPage: true })
+  scenarios.push('真实新用户自动内置8章60题，56题可训练、4题待补充；章节查询及原文完整')
+  await click(textbook, '今日训练', '.side'); await click(textbook, '开始训练'); await completeMrc(textbook)
+  await click(textbook, '继续')
+  assert.equal((await stores(textbook)).platform.active.itemId, pack.points[0].id)
+  await textbook.type('textarea', '生理学导入回归：兴奋、接头传递、分子机制。')
+  const beforePackImport = await stores(textbook)
+  const packFile = JSON.parse(readFileSync(join(root, '346_Physiology_Import.json'), 'utf8'))
+  await importFile(textbook, packFile); await click(textbook, '确认整合导入')
+  const afterPackImport = await stores(textbook)
+  assert.deepEqual(afterPackImport.platform.session, beforePackImport.platform.session)
+  assert.deepEqual(afterPackImport.platform.day, beforePackImport.platform.day)
+  assert.deepEqual(afterPackImport.mrc.attempts, beforePackImport.mrc.attempts)
+  assert.equal(afterPackImport.platform.general.points.length, 60)
+  await click(textbook, '继续训练'); await click(textbook, '提交草稿，核对原文')
+  assert.equal(await textbook.$$('fieldset input').then(n => n.length), pack.points[0].checklist.length)
+  await click(textbook, '记住')
+  const physiologyReviewed = await stores(textbook)
+  assert.equal(physiologyReviewed.platform.general.logs.length, 1)
+  await textbook.reload({ waitUntil: 'networkidle0' })
+  assert.deepEqual((await stores(textbook)).platform.general.points, physiologyReviewed.platform.general.points)
+  await importFile(textbook, packFile); await click(textbook, '确认整合导入')
+  assert.deepEqual((await stores(textbook)).platform.general.points, physiologyReviewed.platform.general.points)
+  assert.deepEqual((await stores(textbook)).platform.general.logs, physiologyReviewed.platform.general.logs)
+  scenarios.push('管理学完成后接续原稿首道生理题；重复导入/刷新不重置评分、间隔、预算或草稿')
+  const { page: upgrade } = await open({ withTextbook: true })
+  const oldEnvelope = structuredClone(savedEnvelope)
+  delete oldEnvelope.platform.general.installedTextbooks
+  await importFile(upgrade, oldEnvelope); await click(upgrade, '确认整合导入')
+  const upgraded = await stores(upgrade)
+  assert.equal(upgraded.platform.general.points.length, oldEnvelope.platform.general.points.length + 60)
+  for (const p of oldEnvelope.platform.general.points) assert.deepEqual(upgraded.platform.general.points.find(row => row.id === p.id), p)
+  assert.deepEqual(upgraded.platform.general.logs, oldEnvelope.platform.general.logs)
+  assert.deepEqual(upgraded.platform.session, oldEnvelope.platform.session)
+  assert.deepEqual(upgraded.platform.day, oldEnvelope.platform.day)
+  assert.deepEqual(upgraded.mrc.attempts, oldEnvelope.mrc.attempts)
+  await upgrade.reload({ waitUntil: 'networkidle0' })
+  assert.equal((await stores(upgrade)).platform.general.points.length, upgraded.platform.general.points.length)
+  scenarios.push('恢复接入教材前的旧整包时补入60题，旧题进度、日志、预算与进行中草稿保持，刷新不重复添加')
   assert.deepEqual(errors, []); assert.deepEqual(external, [])
   const report = { ok: true, html: target, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: ['未实测 Windows Edge、华为浏览器；关闭重开测试为同一浏览器上下文的新页面。'] }
   writeFileSync(join(root, 'reports/fusion-file-check.json'), JSON.stringify(report, null, 2))

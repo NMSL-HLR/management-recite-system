@@ -13,7 +13,7 @@ export function GeneralTraining() {
   const checklist = point.checklist ?? []
   const suggested = checklist.length ? completenessToRating(checklist.filter(c => s.checked.includes(c)).length / checklist.length) : null
   return <div className="stack">
-    <header className="page-head"><div><p className="kicker">{point.subject} · 主动提取</p><h1>{point.title}</h1></div><button className="btn ghost" onClick={() => f.open('today')}>暂停，回到今日</button></header>
+    <header className="page-head"><div><p className="kicker">{point.subject} · {point.quotaChapterOverride || '主动提取'}</p><h1>{point.title}</h1></div><button className="btn ghost" onClick={() => f.open('today')}>暂停，回到今日</button></header>
     {s.phase === 'draft' && <section className="card"><h2>先闭卷输出</h2><p>写出能想起的答案，再揭晓核对。揭晓后这一稿会冻结。</p>
       <textarea aria-label="闭卷草稿" rows={10} value={s.draft} onChange={e => f.patchSession({ draft: e.target.value })} />
       <button className="btn primary" onClick={f.reveal}>提交草稿，核对原文</button>
