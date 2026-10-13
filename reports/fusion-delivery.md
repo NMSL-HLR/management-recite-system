@@ -44,7 +44,7 @@ V13 HTML没有内置生理学/概论教材或个人学习记录，初始points�
 | `tests/fusion.test.ts` | 全科边界、FSRS兼容、备份恢复测试 |
 | `scripts/fusion-file-check.mjs` | 实际file://、三科UI、JSON下载恢复、预算与失败场景 |
 | `scripts/verify-fusion.mjs`, `package-fusion.mjs` | 冻结检查、安全打包与ZIP完整性验证 |
-| `scripts/package-alpha-lite.mjs` | 融合分支禁止覆盖旧Alpha Lite HTML |
+| 旧 Alpha Lite 打包器（整理时已移除） | 历史实现参见 [版本档案](../docs/history.md)，当前只有融合发布入口 |
 | `package.json`, `README.md`, `docs/` | 融合命令与说明，旧说明归档；依赖与lockfile不变 |
 | `src/data/generated/content.json`, `reports/content-parse-report.md`, `dist/index.html` | 正常构建输出，教材仅builtAt变化 |
 

@@ -2,3 +2,9 @@ node_modules/
 *.log
 .DS_Store
 
+# Rebuild locally; the release HTML at the repository root is tracked.
+dist/
+coverage/
+*.tsbuildinfo
+# Redundant theme preview; desktop/mobile and the other theme samples remain tracked.
+reports/fusion-neo.png

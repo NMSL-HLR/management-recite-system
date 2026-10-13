@@ -12,7 +12,7 @@ import {
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 function fail(message) {
-  console.error(`verify-package: ${message}`)
+  console.error(`verify-content: ${message}`)
   process.exit(1)
 }
 
