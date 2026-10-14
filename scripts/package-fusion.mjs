@@ -19,7 +19,7 @@ import zipfile
 root=Path('.')
 output=root/'346_Fusion_Alpha_Source.zip'
 with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
-    for name in ['.gitignore','.gitattributes','README.md','package.json','package-lock.json','tsconfig.json','vite.config.ts','index.html','346_Fusion_Alpha.html','346-Fusion-cleaned-2026-10-14.json','346_Physiology_Import.json','MRC_V3_Alpha_Lite.html','MRC_V2.2.2_沉浸诵读冻结版.html']:
+    for name in ['.gitignore','.gitattributes','README.md','package.json','package-lock.json','tsconfig.json','vite.config.ts','index.html','346_Fusion_Alpha.html','346-Fusion-cleaned-2026-10-14.json','346_Physiology_Import.json','346_Sports_Policy_Import.json','MRC_V3_Alpha_Lite.html','MRC_V2.2.2_沉浸诵读冻结版.html']:
         archive.write(root/name,name)
     for name in ['src','sources','frozen','scripts','tests','reports','docs','manual-review']:
         for path in sorted((root/name).rglob('*')):
@@ -32,11 +32,4 @@ with zipfile.ZipFile(output) as archive:
     assert archive.read('346_Physiology_Import.json') == (root/'346_Physiology_Import.json').read_bytes()
     assert archive.read('346_Fusion_Alpha.html') == (root/'346_Fusion_Alpha.html').read_bytes()
 print(output)
-baseline_output=root/'346_Clean_Baseline_2026-10-14.zip'
-with zipfile.ZipFile(baseline_output,'w',zipfile.ZIP_DEFLATED) as archive:
-    for name in ['346_Fusion_Alpha.html','346-Fusion-cleaned-2026-10-14.json','docs/clean-baseline.md']:
-        archive.write(root/name,name)
-with zipfile.ZipFile(baseline_output) as archive:
-    assert archive.testzip() is None
-print(baseline_output)
 `])

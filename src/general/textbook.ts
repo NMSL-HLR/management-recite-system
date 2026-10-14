@@ -1,3 +1,4 @@
+import policy from '../data/policy/policy.json'
 import pack from '../data/physiology/physiology.json'
 import type { GeneralData, GeneralPoint } from '../fusion/types'
 import { createPoint } from './scheduler'
@@ -21,4 +22,12 @@ export function installPhysiology(data: GeneralData, now: number): GeneralData {
 export function compareGeneralPoints(a: GeneralPoint, b: GeneralPoint): number {
   if (typeof a.sourcePackId === 'string' && a.sourcePackId === b.sourcePackId && typeof a.sourceOrder === 'number' && typeof b.sourceOrder === 'number') return a.sourceOrder - b.sourceOrder
   return naturalTitleCompare(a.title, b.title)
+}
+
+export const policyPack = policy
+export function installBuiltInTextbooks(data: GeneralData, now: number): GeneralData {
+  const previous = installPhysiology(data, now)
+  if (Array.isArray(previous.installedTextbooks) && previous.installedTextbooks.includes(policy.packId)) return previous
+  const points = policy.points.map(p => ({ ...p, ...createPoint({ subject: p.subject, title: p.title, content: p.content, tags: [], checklist: p.checklist }, now), id: p.id }))
+  return mergeTextbook(previous, points, policy.packId)
 }
