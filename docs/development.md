@@ -47,3 +47,13 @@ FUSION_TRANSPORT=http CHROME_PATH=/usr/bin/chromium npm run package-release
 HTTP 验证不等于 `file://` 验证。使用这一模式生成的产物必须附带该限制，之后在允许本地文件的目标浏览器中补测。默认命令仍使用 `file://`，不会静默降级。
 
 本轮新增的 `scripts/audit-file-check.mjs` 被主回归脚本调用，覆盖真实下载、任务冲突、计时写入隔离、资料查询和故障注入。故障注入仅存在于测试脚本，产品没有测试后门。
+
+## 本轮构建与验证补充
+
+- `scripts/single-file.ts` 只支持本项目的单入口内联 JS/CSS；有未嵌入的资源、动态分块或异常引用会使构建失败。已移除 `vite-plugin-singlefile` 及其存在告警的 glob 依赖链，未采用有风险的旧版依赖降级。
+- 发布 HTML 注入适配离线内联资源的 CSP，禁用网络连接、表单提交与 base URI；开发服务器不注入此策略。内联脚本需要 `unsafe-inline`，这不是对被恶意改写的整个 HTML 的完整保护。
+- `scripts/completion-check.mjs` 覆盖教材修订、多窗口、完整浏览器退出重启、启动脚本故障、拖放、键盘操作和合成大数据。默认完整回归始终包含这些测试。
+- 可用 `PERF_BASELINE_HTML=/绝对路径/上版.html FUSION_TRANSPORT=http npm run file-check` 做同机同数据对照。基线应是上一版受信任产物，测试只注入合成记录。未指定基线时仍测当前版，不伪造对照。
+- `FUSION_COMPLETION_ONLY=1` 仅供局部排查，报告会写 `scope: completion-only`；不得将其当成完整交付结果。
+
+旧入口 `src/App.tsx`、`src/views/Today.tsx` 不进入当前入口依赖图，暂作兼容参考；`src/views` 其余视图、`src/state/store.tsx`、`src/coach` 仍由融合界面调用。两个状态层分别维护通用和管理学记录，不能整目录删除或合并后绕过受保护引擎。所有派发与跨模块完成仍走原桥接与事务日志。

@@ -14,7 +14,7 @@
 | [346_Physiology_Import.json](346_Physiology_Import.json) | 独立运动生理学教材包；当前程序已内置 |
 | [346_Fusion_Alpha_Source.zip](346_Fusion_Alpha_Source.zip) | 当前源码、程序、原稿、冻结版本与文字验收报告 |
 
-在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前审计修复分支是 `fix/audit-training-recovery`（基于 `feat/sports-policy-textbook`），`main` 保留 V2.2.2 基线。
+在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前审计修复分支是 `fix/audit-completion`（延续前一轮审计修复），`main` 保留 V2.2.2 基线。
 
 管理学 A/B 已内置；运动生理学共8章60题，其中56题参与训练、4题原文待补充仅供查询。体育概论已内置政策热点五讲，其他资料可继续导入或录入。首页安排“开始训练 → 保存结果 → 下一项／等待复测／收工”。
 
@@ -55,8 +55,8 @@ V2.2.2、MRC Alpha Lite、346 V13 三个冻结 HTML 保留原路径，打包时�
 
 ## 验证范围
 
-本轮修复与验证范围见[训练体验与异常恢复](reports/audit-training-recovery.md)。托管浏览器禁止 `file://` 时，可显式使用 `FUSION_TRANSPORT=http` 验证同一单文件；报告会注明限制，不代表完成本地文件实机验证。
+本轮逐项处理结果见[三方审计闭环清单](reports/audit-closure.md)，前一轮记录见[训练体验与异常恢复](reports/audit-training-recovery.md)。托管浏览器禁止 `file://` 时，可显式使用 `FUSION_TRANSPORT=http` 验证同一单文件；报告会注明限制，不代表完成本地文件实机验证。
 
 [用户体验审计与改进](reports/ux-journey-audit.md) · [外部审计复核与修复](reports/external-audit-review.md) · [浏览器回归结果](reports/fusion-file-check.json) · [界面审计](reports/ui-audit.md) · [运动生理学接入](reports/physiology-delivery.md) · [仓库整理记录](docs/repository-cleanup.md)
 
-既有3项开发依赖告警仍在；多窗口并发写入、大规模长期数据及实体设备验证仍有未覆盖部分，详见审计报告。整理不改变学习算法，也不代表这些限制已解决。
+当前依赖审计为 0 项告警；已加入同源多窗口写入保护、教材逐题修订、完整浏览器进程重启验证和合成大数据测量。实体设备与本地文件协议的验证限制仍保留，详见闭环清单。学习算法、冻结版本与数据标识保持不变。

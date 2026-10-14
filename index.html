@@ -7,7 +7,28 @@
     <title>346全科备考教练 · 融合Alpha</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><main class="recovery-screen stack" id="startup-fallback">
+      <h1>正在打开学习程序</h1><p>若长时间停留在这里，程序文件可能不完整或浏览器不支持。请保留浏览器记录，重新下载完整 HTML。</p>
+      <button type="button" id="startup-backup">备份已存储的原始记录</button><p id="startup-message" role="status"></p>
+      <noscript>请启用 JavaScript 后重新打开，才能训练或导出数据。</noscript>
+    </main></div>
+    <script>
+      // Independent of React and bundled textbook parsing; never writes storage.
+      document.getElementById('startup-backup').addEventListener('click', function () {
+        var status = document.getElementById('startup-message');
+        var raw = {}, readErrors = {};
+        var keys = ['346-fusion-platform-v1','pku346-recall-v1','346-fusion-import-journal-v1','346-fusion-backup-v1','pku346-recall-backup-v1','ms346_points_v1','ms346_logs_v1','ms346_logs_archive_v1','ms346_subjects_v1','ms346_settings_v1','ms346_confusion_sets_v1'];
+        keys.forEach(function (key) { try { raw[key] = localStorage.getItem(key); } catch (e) { readErrors[key] = String(e); } });
+        if (!Object.keys(raw).length) { status.textContent = '本地存储不可读取，未生成空备份。请不要清除浏览器数据。'; return; }
+        try {
+          var blob = new Blob([JSON.stringify({ format: '346-fusion-recovery', raw: raw, readErrors: readErrors }, null, 2)], { type: 'application/json' });
+          var url = URL.createObjectURL(blob), link = document.createElement('a');
+          link.href = url; link.download = '346-Startup-Recovery.json'; document.body.appendChild(link);
+          try { link.click(); } finally { link.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000); }
+          status.textContent = '已发起原始记录下载，请检查下载列表。读取失败项列在文件中；此文件供恢复排查，不能作为全科整包导入。';
+        } catch (e) { status.textContent = '下载未能发起，原记录未改动。'; }
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

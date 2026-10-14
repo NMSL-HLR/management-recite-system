@@ -1,0 +1,47 @@
+{
+  "method": "computed sRGB, translucent button background composited on root solid background; excludes gradients and other controls",
+  "results": [
+    {
+      "skin": "neo",
+      "theme": "light",
+      "foreground": "rgb(155, 41, 41)",
+      "background": "rgba(255, 255, 255, 0.94)",
+      "ratio": 7.624706288425775
+    },
+    {
+      "skin": "neo",
+      "theme": "dark",
+      "foreground": "rgb(255, 180, 180)",
+      "background": "rgb(36, 62, 51)",
+      "ratio": 6.8656050447100085
+    },
+    {
+      "skin": "hmos",
+      "theme": "light",
+      "foreground": "rgb(155, 41, 41)",
+      "background": "rgba(255, 255, 255, 0.94)",
+      "ratio": 7.610264139285518
+    },
+    {
+      "skin": "hmos",
+      "theme": "dark",
+      "foreground": "rgb(255, 180, 180)",
+      "background": "rgb(36, 62, 51)",
+      "ratio": 6.8656050447100085
+    },
+    {
+      "skin": "gba",
+      "theme": "light",
+      "foreground": "rgb(155, 41, 41)",
+      "background": "rgb(255, 255, 255)",
+      "ratio": 7.656111362721227
+    },
+    {
+      "skin": "gba",
+      "theme": "dark",
+      "foreground": "rgb(255, 180, 180)",
+      "background": "rgb(36, 62, 51)",
+      "ratio": 6.8656050447100085
+    }
+  ]
+}

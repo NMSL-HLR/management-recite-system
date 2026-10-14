@@ -35,6 +35,7 @@ export function Library() {
               <button className="btn ghost" type="button" aria-label={`移除书签：${markedItem?.title || markedPage?.anchor || id}`} onClick={() => app.toggleBookmark(id)}>移除</button></li>
           })}</ul>
         </details>
+        <label className="mobile-chapter field">选择章节<select aria-label="管理学章节" value={chapter?.id || ''} onChange={e => app.setLibrary({ chapterId: e.target.value, itemId: '', pageAnchor: '', query: '' })}>{chapters.map(row => <option key={row.id} value={row.id}>{row.title}</option>)}</select></label>
         <ul className="toc">
           {chapters.map((row) => (
             <li key={row.id}>
@@ -160,6 +161,7 @@ function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; not
         </>
       ) : item.kind !== 'redline' ? <SectionList sections={sections} /> : null}
       {item.kind !== 'comparison' && item.kind !== 'redline' ? item.tables.map((table, i) => <DataTable key={`t-${i}`} table={table} />) : null}
+      <p className="muted">本章同类题：第 {index + 1} / {ids.length} 题</p>
       <div className="actions">
         <button className="btn" type="button" disabled={index <= 0} onClick={() => app.setLibrary({ itemId: ids[index - 1].id })}>上一题</button>
         <button className="btn" type="button" disabled={index >= ids.length - 1} onClick={() => app.setLibrary({ itemId: ids[index + 1].id })}>下一题</button>

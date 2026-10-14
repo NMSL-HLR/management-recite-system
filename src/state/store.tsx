@@ -3,7 +3,7 @@ import { decideNext } from '../coach/decision'
 import { ensurePlan } from '../coach/planner'
 import { coachInput, prepareCoachState, startCoachRecall, startChosenRecall, commitCoachRecall, continueCoach } from '../coach/recallAdapter'
 import type { CoachDecision, CoachPersisted, CoachState } from '../coach/types'
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { content, getItem } from '../content'
 import { buildDayPlan, resolveEvening } from '../engine/dayplan'
 import { requestHint, revealFull, startRecall, submitDraft, goCompare, toRestate, buildHintContext } from '../engine/recall'
@@ -126,13 +126,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [importPlan, setImportPlan] = useState<ImportPlan | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
+  const validated = useRef<CoachPersisted | undefined>(undefined)
+  const writeState = (next: CoachPersisted) => {
+    try {
+      validateMrcFields(next, validated.current)
+      const result = safeSet(browserKv(), DATA_KEY, JSON.stringify(next))
+      if (result.ok) validated.current = next
+      return result
+    } catch (error) { return { ok: false, warning: `写入前检查未通过：${error instanceof Error ? error.message : String(error)}` } }
+  }
+
   useEffect(() => {
     applyUiSettingsToDocument(state.settings)
   }, [state.settings.theme, state.settings.readingScale, state.settings.focusReading])
 
   useEffect(() => {
     if (hold) return
-    const result = safeSet(browserKv(), DATA_KEY, JSON.stringify(state))
+    const result = writeState(state)
     if (!result.ok) setWarning(`自动保存失败：${result.warning}。请立即导出 JSON，程序没有静默丢弃这次操作。`)
   }, [state, hold])
 
@@ -155,7 +165,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (hold || !getItem(itemId)) return false
         if (state.recall && state.recall.phase !== 'done') return state.recall.itemId === itemId && state.recall.startedAt === startedAt
         const next = { ...state, view: 'recall' as const, recall: startRecall(itemId, startedAt), recallQueue: [itemId] }
-        const wrote = safeSet(browserKv(), DATA_KEY, JSON.stringify(next))
+        const wrote = writeState(next)
         if (!wrote.ok) { setWarning(`训练开始保存失败：${wrote.warning}`); return false }
         setState(next)
         return true
@@ -200,7 +210,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setWarning('当前本地记录受保护，无法写入。请先导出 JSON，或通过原有导入流程恢复记录。')
           return
         }
-        const result = safeSet(browserKv(), DATA_KEY, JSON.stringify(next))
+        const result = writeState(next)
         if (!result.ok) {
           setWarning(`本轮保存失败：${result.warning}。草稿保留，请重试或导出 JSON。`)
           return
@@ -279,6 +289,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         try {
           const parsed = JSON.parse(raw.value) as Persisted
+          validateMrcFields(parsed)
           const wrote = safeSet(browserKv(), DATA_KEY, raw.value)
           if (!wrote.ok) {
             setWarning(wrote.warning || '回滚写入失败。')

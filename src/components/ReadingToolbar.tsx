@@ -11,7 +11,7 @@ export function ReadingToolbar() {
   const app = useApp()
   const { readingScale, focusReading } = app.state.settings
   return (
-    <div className="reading-toolbar" role="toolbar" aria-label="阅读显示">
+    <div className="reading-toolbar" role="toolbar" aria-orientation="horizontal" aria-label="阅读显示">
       <button
         type="button"
         className={focusReading ? 'btn primary' : 'btn'}

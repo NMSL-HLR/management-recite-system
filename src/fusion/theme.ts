@@ -15,11 +15,10 @@ export function useMemoryTheme() {
   })
   const [warning, setWarning] = useState('')
   useLayoutEffect(() => { document.documentElement.dataset.skin = skin }, [skin])
-  const cycle = () => {
-    const next = SKINS[skin].next
+  const choose = (next: Skin) => {
     setSkin(next)
     try { localStorage.setItem(KEY, next); setWarning('') }
     catch { setWarning('主题已切换，但未能保存偏好；重新打开后可能恢复默认。') }
   }
-  return { skin, cycle, warning }
+  return { skin, choose, cycle: () => choose(SKINS[skin].next), warning }
 }

@@ -1,3 +1,4 @@
+import { durationClock } from '../browser/format'
 import { downloadText, localDateStamp } from '../browser/download'
 import { useEffect, useMemo, useState } from 'react'
 import { content, getItem } from '../content'
@@ -43,7 +44,7 @@ export function Exam() {
           <p className="kicker">{exam.title} · {exam.index + 1}/{exam.itemIds.length}</p>
           <h1>{item.title}</h1>
         </div>
-        {remain !== null ? <strong className={remain < 0 ? 'timer late' : 'timer'}>{remain >= 0 ? format(remain) : `超时 ${format(-remain)}`}</strong> : null}
+        {remain !== null ? <strong className={remain < 0 ? 'timer late' : 'timer'}>{remain >= 0 ? durationClock(remain) : `超时 ${durationClock(-remain)}`}</strong> : null}
       </header>
       {!answer.revealed ? <p className="muted">切换页面不会暂停计时。作答会自动保存；对照原文后，本题作答冻结。</p> : null}
       {answer.durationSeconds !== undefined && answer.revealed ? (
@@ -120,6 +121,8 @@ function ExamSetup() {
         <input type="number" min={1} value={minutes} aria-invalid={!validMinutes} onChange={(event) => setMinutes(event.target.value)} />
       </label>
       {!validMinutes && <p role="status">限时写作需要至少 1 分钟；其他考试模式不受影响。</p>}
+      {!due.length && <p className="muted">当前没有到期题，“到期题”暂不可用。</p>}
+      {!wrong.length && <p className="muted">尚无提示依赖或重学记录，“错题”暂不可用。</p>}
       <div className="actions">
         <button className="btn primary" type="button" onClick={() => start('随机 A 题', pool.filter((item) => item.coreA), null)}>随机 A 题</button>
         <button className="btn" type="button" onClick={() => start('随机 B 骨架', pool.filter((item) => item.source === 'B' && item.kind === 'skeleton'), null)}>随机 B 骨架</button>
@@ -139,10 +142,4 @@ function downloadExam(exam: ExamState) {
     lines.push(`# ${item?.title || id}`, answer?.text || '', answer?.durationSeconds !== undefined ? `用时 ${answer.durationSeconds}s` : '', '')
   }
   downloadText(lines.join('\n'), `pku346-exam-${localDateStamp()}.txt`)
-}
-
-function format(total: number): string {
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${String(s).padStart(2, '0')}`
 }

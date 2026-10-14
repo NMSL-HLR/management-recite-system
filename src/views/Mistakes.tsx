@@ -13,6 +13,7 @@ export function Mistakes() {
   const due = [...latest.values()].filter((attempt) => attempt.dueAt && attempt.dueAt <= app.now)
   const terms = app.state.attempts.flatMap((attempt) => attempt.termErrors.map((text) => ({ text, attempt })))
   const reds = app.state.attempts.flatMap((attempt) => attempt.redlineErrors.map((text) => ({ text, attempt })))
+  const count = (rows: { text: string }[]) => [...rows.reduce((m, r) => m.set(r.text, (m.get(r.text) || 0) + 1), new Map<string, number>())]
   return (
     <div className="stack">
       <h1>错漏与复测</h1>
@@ -26,12 +27,12 @@ export function Mistakes() {
       </section>
       <section className="split">
         <article className="card">
-          <h2>术语错误</h2>
-          <ul className="plain">{terms.map((row, i) => <li key={i}>{row.text}</li>)}</ul>
+          <h2>术语错误</h2>{!terms.length && <p>尚无已记录的术语错误。</p>}
+          <ul className="plain">{count(terms).map(([text, n]) => <li key={text}>{text} · 记录 {n} 次</li>)}</ul>
         </article>
         <article className="card">
-          <h2>红线错误</h2>
-          <ul className="plain">{reds.map((row, i) => <li key={i}>{row.text}</li>)}</ul>
+          <h2>红线错误</h2>{!reds.length && <p>尚无已记录的红线错误。</p>}
+          <ul className="plain">{count(reds).map(([text, n]) => <li key={text}>{text} · 记录 {n} 次</li>)}</ul>
         </article>
       </section>
     </div>
@@ -39,7 +40,7 @@ export function Mistakes() {
 }
 
 function AttemptList({ rows, onOpen }: { rows: { itemId: string; evidenceState: 'independent' | 'minor_omission' | 'cue_dependent' | 'relearned'; dueAt?: number }[]; onOpen: (id: string) => void }) {
-  if (!rows.length) return <p className="muted">没有。</p>
+  if (!rows.length) return <p className="muted">当前没有这一类待处理记录，可回到今日训练继续。</p>
   return (
     <ul className="plain">
       {rows.map((row) => {

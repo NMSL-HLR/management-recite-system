@@ -18,7 +18,7 @@ export function Archive() {
     <div className="stack">
       <h1>学习档案</h1>
       <section className="card">
-        <h2>按天的证据</h2>
+        <h2>按天的证据</h2><p className="muted">色条与计数依次为：独立提取 / 基本提取 / 提示依赖 / 重新学习；次数不代表掌握比例。</p>
         {dash.byDay.length === 0 ? <p className="muted">还没有记录。</p> : (
           <ul className="bars">
             {dash.byDay.map((day) => (
@@ -54,8 +54,8 @@ export function Archive() {
                   <EvidenceBadge state={attempt.evidenceState} />
                   <small>{new Date(attempt.finishedAt).toLocaleString()}</small>
                 </header>
-                <pre>{attempt.preRevealDraft?.text || '（无揭晓前草稿）'}</pre>
-                {attempt.restatementText ? <p>撤提示后：{attempt.restatementText}</p> : null}
+                <details><summary>查看本次草稿</summary><pre>{attempt.preRevealDraft?.text || '（无揭晓前草稿）'}</pre>
+                {attempt.restatementText ? <p>撤提示后：{attempt.restatementText}</p> : null}</details>
               </li>
             )
           })}

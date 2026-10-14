@@ -1,3 +1,5 @@
+import { applyTextbookChanges } from '../general/revisions'
+import { policyPack, physiologyPack } from '../general/textbook'
 import { downloadJson, localDateStamp } from '../browser/download'
 import { collectRecovery } from '../browser/recovery'
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -33,7 +35,11 @@ interface FusionApi {
   addPoint: (input: { subject: string; title: string; content: string; checklist: string[]; chapter: string }) => boolean
   stageImport: (raw: string) => void
   confirmImport: () => void
+  selectedRevisions: string[]
+  selectRevision: (id: string, selected: boolean) => void
+  previewBuiltIn: (kind: 'physiology' | 'policy') => void
   cancelImport: () => void
+  lastExportRequestedAt: number
   exportAll: () => void
   exportGeneral: () => void
   rollback: () => void
@@ -64,7 +70,16 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const [panel, setPanel] = useState<Panel>('today')
   const [resumeNotice, setResumeNotice] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(recoveryMessage ?? loaded.warning)
+  const [lastExportRequestedAt, setLastExportRequestedAt] = useState(() => {
+    try { const value = Number(localStorage.getItem('346-fusion-last-export-request-v1')); return Number.isFinite(value) && value > 0 ? value : 0 } catch { return 0 }
+  })
+  useEffect(() => {
+    if (!['导入完成，导入前的数据已备份，可在设置中回滚。', '已恢复整包导入前的两个模块记录。', '已发起全科备份下载，请在浏览器下载列表中确认文件。'].includes(message ?? '')) return
+    const timer = setTimeout(() => setMessage(null), 8000)
+    return () => clearTimeout(timer)
+  }, [message])
   const [importPlan, setImportPlan] = useState<FusionImportPlan | null>(null)
+  const [selectedRevisions, setSelectedRevisions] = useState<string[]>([])
   const [rollbackRequested, setRollbackRequested] = useState(false)
   const [libraryDraft, setLibraryDraft] = useState<LibraryDraft>(emptyLibraryDraft)
   const hasLibraryDraft = Boolean(libraryDraft.title || libraryDraft.content || libraryDraft.checklist || libraryDraft.chapter)
@@ -82,6 +97,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     if (blockedRef.current && !recovery) { setMessage('本地记录受保护，请先导出备份并恢复数据。'); return false }
     try {
       if (localStorage.getItem(JOURNAL_KEY)) throw new Error('存在未完成导入恢复日志，请重新打开程序')
+      validatePlatform(next, ref.current.general)
       localStorage.setItem(PLATFORM_KEY, JSON.stringify(next))
       ref.current = next; setState(next)
       return true
@@ -169,14 +185,28 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
       try { const next = current(); return persist({ ...next, general: addGeneralPoint(next.general, input, Date.now()) }) }
       catch (error) { setMessage(error instanceof Error ? error.message : String(error)); return false }
     },
+    selectedRevisions,
+    selectRevision: (id, selected) => setSelectedRevisions(prev => selected ? [...new Set([...prev, id])] : prev.filter(x => x !== id)),
+    previewBuiltIn: kind => api.stageImport(JSON.stringify(kind === 'physiology' ? { ...physiologyPack, referencePoints: [] } : policyPack)),
     stageImport: raw => {
+      setSelectedRevisions([])
       try { const next = current(); const plan = inspectFusionImport(raw, next, mrc.state); importRevision.current = JSON.stringify([ref.current, mrc.state]); setImportPlan(plan) }
       catch (error) { setImportPlan(null); setMessage(error instanceof Error ? error.message : '备份无法解析。') }
     },
     confirmImport: () => {
       if (!importPlan) return
       if (importRevision.current !== JSON.stringify([ref.current, mrc.state])) { setMessage('预览后学习记录已变化，请重新选择备份预览。'); setImportPlan(null); return }
-      const platform = { ...importPlan.platform, general: installBuiltInTextbooks(importPlan.platform.general, Date.now()) }
+      let revised = importPlan.platform.general
+      try {
+        if (importPlan.textbook) revised = applyTextbookChanges(ref.current.general, importPlan.textbook.points, importPlan.textbook.packId, selectedRevisions, ref.current.active?.status === 'in_progress' ? ref.current.active.itemId : undefined)
+      } catch (error) { setMessage(error instanceof Error ? error.message : '教材修订无法应用'); return }
+      const platform = { ...importPlan.platform, general: installBuiltInTextbooks(revised, Date.now()) }
+      if (importPlan.kind === '教材资料') {
+        // New material can enter today's chapter scope without clearing completed work or budgets.
+        const selected = { ...platform.day.selectedChapters }
+        for (const point of importPlan.textbook?.points ?? []) if (selectedRevisions.includes(point.id) || !ref.current.general.points.some(p => p.id === point.id)) delete selected[point.subject]
+        platform.day = { ...platform.day, selectedChapters: selected }
+      }
       const wrote = writeBundle(localStorage, platform, importPlan.mrc)
       if (!wrote.ok) { setMessage(wrote.error ?? '导入失败'); if (localStorage.getItem(JOURNAL_KEY)) { blockedRef.current = true; setBlocked(true); window.location.reload() } return }
       if (wrote.needsRecovery) { window.location.reload(); return }
@@ -184,6 +214,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
       blockedRef.current = false; setBlocked(false); setImportPlan(null); setPanel('today'); setMessage('导入完成，导入前的数据已备份，可在设置中回滚。')
     },
     cancelImport: () => setImportPlan(null),
+    lastExportRequestedAt,
     exportAll: () => {
       try {
         if (blockedRef.current || mrc.storageBlocked) {
@@ -191,7 +222,13 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
           if (!Object.keys(recovery.raw).length) { setMessage('无法读取原始存储，未生成空备份。请保留浏览器数据并恢复存储访问。'); return }
           downloadJson(recovery, `346-Protected-Raw-Recovery-${localDateStamp()}.json`)
           setMessage(`已发起原始存储下载${Object.keys(recovery.readErrors).length ? '（有读取失败项，详见文件）' : ''}。请检查下载列表；该文件供恢复排查，不能作为正常整包导入。`)
-        } else downloadJson(makeEnvelope(ref.current, mrc.state), `346-Fusion-${localDateStamp()}.json`)
+        } else {
+          downloadJson(makeEnvelope(ref.current, mrc.state), `346-Fusion-${localDateStamp()}.json`)
+          const requestedAt = Date.now(); setLastExportRequestedAt(requestedAt)
+          setMessage('已发起全科备份下载，请在浏览器下载列表中确认文件。')
+          try { localStorage.setItem('346-fusion-last-export-request-v1', String(requestedAt)) }
+          catch { setMessage('下载已发起，但无法保存导出时间。请在浏览器下载列表中确认备份文件。') }
+        }
       } catch { setMessage('备份下载未能发起，当前记录未改动。请检查下载权限后重试。') }
     },
     exportGeneral: () => {

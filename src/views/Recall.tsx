@@ -1,3 +1,4 @@
+import { localTime } from '../browser/format'
 import type { ReactNode } from 'react'
 import { RecallTimer } from '../components/RecallTimer'
 import { CoachNext } from '../components/CoachNext'
@@ -48,6 +49,7 @@ export function Recall() {
           <button className="btn ghost" type="button" onClick={() => app.setView('today')}>回到今日，稍后继续</button>
         </div>
       </header>
+      {['b_skeleton', 'headings', 'keywords'].includes(recall.phase) && recall.frozenDraft && <details className="card"><summary>查看已冻结的草稿</summary><pre className="frozen-draft">{recall.frozenDraft.text || '（空）'}</pre></details>}
       <ol className="steps">
         {stepLabels.map((label, index) => (
           <li key={label} className={index === activeStep ? 'on' : index < activeStep ? 'done' : ''}>{label}</li>
@@ -56,8 +58,8 @@ export function Recall() {
       {recall.phase === 'draft' ? (
         <section className="card">
           <h2>闭卷草稿</h2>
-          <p className="muted">现在只留题目。先把能想起的骨架写下来，揭晓后不能回改这一稿。</p>
-          <textarea value={recall.draft} onChange={(event) => app.patchRecall({ draft: event.target.value })} rows={10} placeholder={'1. 定义\n2. 特点\n3. 过程\n4. 体育例证'} />
+          <p className="muted">现在只留题目。先把能想起的骨架写下来，揭晓后不能回改这一稿。Ctrl+Enter 可提交；直接看全文会按原规则记录为重新学习。</p>
+          <textarea value={recall.draft} onChange={(event) => app.patchRecall({ draft: event.target.value })} rows={10} onKeyDown={e => { if (e.ctrlKey && e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); app.recallSubmit() } }} placeholder={'1. 定义\n2. 特点\n3. 过程\n4. 体育例证'} />
           <div className="actions">
             <button className="btn primary" type="button" onClick={app.recallSubmit}>无提示交卷，去核对</button>
             <button className="btn" type="button" onClick={app.recallHint}>需要提示</button>
@@ -89,7 +91,7 @@ export function Recall() {
       {recall.phase === 'compare' ? (
         <section className="stack">
           <div className="compare">
-            <article className="card">
+            <article className="card draft-pane">
               <h2>揭晓前草稿</h2>
               <pre className="frozen-draft">{recall.frozenDraft?.text || '（空）'}</pre>
             </article>
@@ -104,6 +106,7 @@ export function Recall() {
             <p className="muted">已核对 {item.checkPoints.filter(p => recall.checkedPointIds.includes(p.id)).length} / {item.checkPoints.length} 项</p>
             <p className="muted">勾的是揭晓前草稿里已经有的，不是看完答案后的感觉。</p>
             <button className="btn ghost" type="button" onClick={() => app.patchRecall({ checkedPointIds: [...new Set([...recall.checkedPointIds, ...item.checkPoints.filter((p) => p.level === 1 && p.role !== 'sports' && p.role !== 'expansion').map((p) => p.id)])] })}>主体小标题都写到了</button>
+<button className="btn ghost" type="button" onClick={() => app.patchRecall({ checkedPointIds: [] })}>清空本轮核对勾选</button>
             {groups(item).map(([group, points]) => (
               <fieldset key={group}>
                 <legend>{group}</legend>
@@ -166,7 +169,7 @@ export function Recall() {
           <h3>{item.title}</h3>
           <textarea rows={8} value={recall.restatement} onChange={(event) => app.patchRecall({ restatement: event.target.value })} />
           <div className="choice">
-            <span>主观信心（1 很没把握 → 5 很有把握）</span>
+            <span>主观信心（1 很没把握 · 2 较没把握 · 3 一般 · 4 较有把握 · 5 很有把握）</span>
             {([1, 2, 3, 4, 5] as const).map((n) => (
               <button key={n} type="button" aria-pressed={(recall.selfConfidence ?? 3) === n} className={(recall.selfConfidence ?? 3) === n ? 'btn primary' : 'btn'} onClick={() => app.patchRecall({ selfConfidence: n })}>{n}</button>
             ))}
@@ -189,7 +192,7 @@ export function Recall() {
           <p>最高提示：{HINT_LABEL[recall.result.highestHintUsed]}。撤提示复述：{recall.result.postRevealNoHintPassed ? '通过' : '未通过或未记'}。信心 {recall.result.selfConfidence}。这三项分开保存。</p>
           {recall.result.sportsExampleMissing ? <p className="muted">本轮体育例证未核对，与上方提取证据等级分开记录。</p> : null}
           <p className="muted">主观信心不能把本轮改成独立提取。</p>
-          <p>下次复测：{recall.result.dueAt ? new Date(recall.result.dueAt).toLocaleString() : '未安排'}。</p>
+          <p>下次复测：{recall.result.dueAt ? localTime(recall.result.dueAt) : '未安排'}。</p>
           <CoachNext />
         </section>
       ) : null}

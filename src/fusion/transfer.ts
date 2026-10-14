@@ -1,6 +1,8 @@
 import { content } from '../content'
 import { validateMrcFields } from './validateMrc'
 import { mergeTextbook } from '../general/textbook'
+import { textbookChanges, type TextbookChange } from '../general/revisions'
+import type { GeneralData, GeneralPoint } from './types'
 import type { CoachPersisted } from '../coach/types'
 import { defaultPersisted, defaultSettings } from '../state/defaults'
 import { normalizeUiSettings } from '../state/uiSettings'
@@ -12,7 +14,7 @@ import { FUSION_BACKUP_KEY, JOURNAL_KEY, PLATFORM_KEY, type FusionState } from '
 
 const obj = (x: unknown): x is Record<string, unknown> => Boolean(x && typeof x === 'object' && !Array.isArray(x))
 const num = (x: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): x is number => typeof x === 'number' && Number.isFinite(x) && x >= min && x <= max
-export function validatePlatform(value: unknown): FusionState {
+export function validatePlatform(value: unknown, trustedGeneral?: GeneralData): FusionState {
   if (!obj(value) || value.platformVersion !== 1) throw new Error('不支持这份全科平台数据版本。')
   const { settings, day, active, session } = value
   if (!obj(settings) || !num(settings.minutes, 15, 600) || !obj(settings.subjects)) throw new Error('全科预算设置不合法。')
@@ -27,7 +29,7 @@ export function validatePlatform(value: unknown): FusionState {
   if (day.tasks.some(t => !validTask(t)) || new Set(day.tasks.map(t => t.id)).size !== day.tasks.length || (active !== null && !validTask(active))) throw new Error('训练任务不合法。')
   if (active !== null && !day.tasks.some(t => obj(active) && Object.keys(t).length === Object.keys(active).length && Object.entries(t).every(([key, v]) => active[key] === v))) throw new Error('当前任务与今日计划不一致。')
   if (day.tasks.filter(t => t.status === 'in_progress').length > 1 || (day.tasks.some(t => t.status === 'in_progress') && (!obj(active) || active.status !== 'in_progress'))) throw new Error('存在冲突的未完成任务。')
-  const general = normalizeGeneral(value.general)
+  const general = value.general === trustedGeneral && trustedGeneral ? trustedGeneral : normalizeGeneral(value.general)
   if (session !== null) {
     if (!obj(session) || !obj(active) || active.module !== 'general' || session.taskId !== active.id || session.itemId !== active.itemId || (typeof session.phase !== 'string' || !['draft', 'compare', 'done'].includes(session.phase)) || typeof session.draft !== 'string' || (session.frozenDraft !== null && typeof session.frozenDraft !== 'string') || !Array.isArray(session.checked) || session.checked.some(x => typeof x !== 'string') || (session.rating !== null && (typeof session.rating !== 'number' || ![1, 2, 3, 4].includes(session.rating)))) throw new Error('通用训练草稿不合法。')
     if (!general.points.some(p => p.id === session.itemId && !isLegacyManagement(p.subject))) throw new Error('草稿对应的知识点不存在。')
@@ -63,7 +65,7 @@ export function validateMrcSnapshot(value: unknown, current: CoachPersisted): Co
     gaps: { ...defaultSettings().gaps, ...parsed.settings.gaps }, day: { ...defaultSettings().day, ...parsed.settings.day } } }
 }
 
-export interface FusionImportPlan { platform: FusionState; mrc: CoachPersisted; kind: '旧记忆引擎' | '管理学 JSON' | '全科整包' | '教材资料'; summary: string }
+export interface FusionImportPlan { platform: FusionState; mrc: CoachPersisted; kind: '旧记忆引擎' | '管理学 JSON' | '全科整包' | '教材资料'; summary: string; textbook?: { packId: string; points: GeneralPoint[]; changes: TextbookChange[] } }
 export function inspectFusionImport(raw: string, platform: FusionState, mrc: CoachPersisted): FusionImportPlan {
   const data: unknown = JSON.parse(raw)
   if (!obj(data)) throw new Error('文件不是有效的备份对象。')
@@ -76,9 +78,10 @@ export function inspectFusionImport(raw: string, platform: FusionState, mrc: Coa
     if (incoming.logs.length || incoming.logsArchive.length || incoming.points.some(p => p.totalReviews > 0 || p.lastReviewedAt !== undefined)) {
       return inspectFusionImport(JSON.stringify({ ...incoming, format: '346-legacy-progress' }), platform, mrc)
     }
+    const changes = textbookChanges(platform.general, incoming.points, data.packId, platform.active?.status === 'in_progress' ? platform.active.itemId : undefined)
     const general = mergeTextbook(platform.general, incoming.points, data.packId)
     const added = general.points.length - platform.general.points.length
-    return { platform: { ...platform, general }, mrc, kind: '教材资料', summary: `共 ${incoming.points.length} 题，新增 ${added} 题，已有 ${incoming.points.length - added} 题保持原样。包含待补充题 ${incoming.points.filter(p => p.trainingBlocked).length} 道，仅供查询。不会覆盖已有作答、评分、复测时间、当前草稿或今日预算。` }
+    return { platform: { ...platform, general }, mrc, kind: '教材资料', textbook: { packId: data.packId, points: incoming.points, changes }, summary: `共 ${incoming.points.length} 题，新增 ${added} 题，已有 ${incoming.points.length - added} 题默认保留；${changes.length} 题有教材差异，可逐题选择修订（会替换所选题的正文与核对清单，保留学习记录）。包含待补充题 ${incoming.points.filter(p => p.trainingBlocked).length} 道，仅供查询。不会覆盖已有作答、评分、复测时间、当前草稿或今日预算。` }
   }
   if (data.format === '346-fusion') {
     if (data.platformVersion !== 1) throw new Error('整包备份版本比程序新或无法识别。')
@@ -115,6 +118,8 @@ export function writeBundle(kv: Kv, platform: FusionState, mrc: CoachPersisted, 
   let journalWritten = false
   let previous: Record<string, string | null> = {}
   try {
+    validatePlatform(platform)
+    validateMrcFields(mrc)
     previous = { [PLATFORM_KEY]: kv.getItem(PLATFORM_KEY), [DATA_KEY]: kv.getItem(DATA_KEY) }
     if (backup) kv.setItem(FUSION_BACKUP_KEY, JSON.stringify(previous))
     const next = { [PLATFORM_KEY]: JSON.stringify(platform), [DATA_KEY]: JSON.stringify(mrc) }

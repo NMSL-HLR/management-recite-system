@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-14",
+  "branch": "fix/audit-completion",
+  "command": "FUSION_TRANSPORT=http PERF_BASELINE_HTML=<previous c975a2e HTML> npm run package-release",
+  "unitTests": {
+    "files": 16,
+    "passed": 113
+  },
+  "browser": {
+    "scenarios": 52,
+    "transport": "http",
+    "scope": "full"
+  },
+  "typecheck": "passed",
+  "frozenBaselines": "passed",
+  "dependencyVulnerabilities": 0,
+  "htmlSha256": "e3208686582276de496dd46def031eca36d754c310878004e93f06e1f42bcf16",
+  "limitations": [
+    "file:// prohibited by managed browser; identical standalone HTML tested over localhost HTTP",
+    "No physical Windows Edge, Huawei, Safari or screen reader validation",
+    "Synthetic 500 points / 5000 logs does not establish unlimited-history performance"
+  ]
+}

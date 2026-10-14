@@ -1,3 +1,4 @@
+import { durationClock } from '../browser/format'
 import { useEffect, useState } from 'react'
 
 /** Display-only clock; it never writes state or changes the engine's timing. */
@@ -10,5 +11,5 @@ export function RecallTimer({ startedAt, finishedAt }: { startedAt: number; fini
     return () => window.clearInterval(timer)
   }, [startedAt, finishedAt])
   const elapsed = Math.max(0, Math.floor(((finishedAt ?? now) - startedAt) / 1000))
-  return <strong className="timer" aria-label="本轮用时">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</strong>
+  return <strong className="timer" aria-label="本轮用时">{durationClock(elapsed)}</strong>
 }

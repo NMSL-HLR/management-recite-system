@@ -1,3 +1,4 @@
+import { allCandidates } from '../planner'
 import { useApp } from '../../state/store'
 import { isLegacyManagement } from '../../general/data'
 import { useFusion } from '../store'
@@ -6,9 +7,10 @@ export function FusionRecords() {
   const f = useFusion()
   const app = useApp()
   const points = f.state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked)
+  const due = allCandidates(f.state, app.state, app.now).filter(c => !c.isNew)
   const weak = points.filter(p => (p.leaks?.length ?? 0) > 0).sort((a, b) => (b.leaks?.length ?? 0) - (a.leaks?.length ?? 0)).slice(0, 5)
   const logs = [...f.state.general.logsArchive, ...f.state.general.logs].sort((a, b) => b.reviewedAt - a.reviewedAt).slice(0, 20)
-  return <div className="stack"><h1>学习记录</h1><section className="card"><h2>管理学证据</h2><p>已有 {app.state.attempts.length} 次训练记录，提示依赖与体育例证检查保留原值。</p><button className="btn" onClick={() => app.setView('archive')}>查看管理学记录</button><button className="btn ghost" onClick={() => app.setView('mistakes')}>查看管理学错漏</button></section>
+  return <div className="stack"><h1>学习记录</h1><section className="card"><h2>下一步需要处理什么</h2><p>按今日教练同一候选规则，当前有 {due.length} 道到期复测；实际安排仍受预算限制。</p><p>管理学 {app.state.attempts.length} 次训练，通用模块 {f.state.general.logs.length + f.state.general.logsArchive.length} 次复习。</p><ul>{[...new Set(points.map(p => p.subject))].map(subject => <li key={subject}>{subject}：已训练 {points.filter(p => p.subject === subject && p.totalReviews > 0).length} / {points.filter(p => p.subject === subject).length} 题（不等于已掌握）</li>)}</ul></section><section className="card"><h2>管理学证据</h2><p>已有 {app.state.attempts.length} 次训练记录，提示依赖与体育例证检查保留原值。</p><button className="btn" onClick={() => app.setView('archive')}>查看管理学记录</button><button className="btn ghost" onClick={() => app.setView('mistakes')}>查看管理学错漏</button></section>
     <section className="card"><h2>当前需要修复的要点</h2>{weak.length ? <ul>{weak.map(p => <li key={p.id}>{p.subject} · {p.title}：仍有 {p.leaks!.length} 个遗漏要点。<details><summary>查看具体遗漏</summary><ul>{p.leaks!.map((l, i) => <li key={`${l.label}-${i}`}>{l.label}</li>)}</ul></details></li>)}</ul> : <p className="muted">通用模块尚无已记录的遗漏。没有记录不代表已经掌握。</p>}<p>通用模块当前有 {points.filter(p => p.totalReviews > 0 && p.dueDate <= app.now).length} 条到期复习。下一步由今日作战台安排。</p><button className="btn" onClick={() => f.open('today')}>查看今日推荐</button></section>
     <section className="card"><h2>最近通用模块训练</h2>{logs.length ? <ul>{logs.map(l => <li key={l.id}>{new Date(l.reviewedAt).toLocaleString()} · {l.subject} · {f.state.general.points.find(p => p.id === l.pointId)?.title ?? l.pointId} · {['', '忘记', '模糊', '记住', '轻松回忆'][l.rating]}
       {l.preRevealDraft !== undefined && <details><summary>查看揭晓前输出{l.durationSeconds !== undefined ? ` · ${l.durationSeconds} 秒` : ''}</summary><pre>{l.preRevealDraft || '（空）'}</pre><p>已核对 {l.checkedLabels?.length ?? 0} 个要点。</p></details>}

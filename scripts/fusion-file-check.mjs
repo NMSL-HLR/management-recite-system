@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import puppeteer from 'puppeteer-core'
 import { createServer } from 'node:http'
 import { checkJourneys } from './ux-file-check.mjs'
+import { checkCompletion } from './completion-check.mjs'
 import { checkAuditJourneys } from './audit-file-check.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -86,6 +87,7 @@ function legacyPoint(id, subject, title) {
     difficulty: 5, stability: 0.4, interval: 0, repetitions: 0, dueDate: Date.now() - 1000, state: 'new', totalReviews: 0, lapses: 0, extraV13: { keep: true } }
 }
 try {
+  if (!process.env.FUSION_COMPLETION_ONLY) {
   const { page } = await open()
   const baseline = await stores(page)
   assert.equal(await page.$eval('.coach-title', n => n.textContent), first.title)
@@ -175,7 +177,7 @@ try {
   await click(cap, '回到今日'); await cap.reload({ waitUntil: 'networkidle0' })
   assert.equal(await cap.$$('main [data-testid="start-training"]').then(n => n.length), 0)
   const capStored = await stores(cap); assert.equal(capStored.platform.day.tasks.length, 1)
-  await click(cap, '设置数据', '.side'); await click(cap, '管理学详细设置'); await click(cap, '闭卷考试（原版）')
+  await click(cap, '设置数据', '.side'); await click(cap, '管理学闭卷考试')
   assert.ok((await text(cap)).includes('闭卷'))
   scenarios.push('15分钟总预算完成后收工，刷新不追加；原闭卷考试仍可访问')
 
@@ -427,8 +429,10 @@ try {
   scenarios.push('体育概论内置五讲20项资料、15道训练题和5组参考骨架，讲次查询、原文展示及重复导入刷新均正确')
   await checkJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   await checkAuditJourneys({ open, seed, click, text, stores, settle, scenarios, root })
+  }
+  await checkCompletion({ open, seed, click, text, stores, settle, scenarios, root, browser, target, executablePath, htmlPath })
   assert.deepEqual(errors, []); assert.deepEqual(external, [])
-  const report = { ok: true, html: htmlPath, transport, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: [...(server ? ['当前管理策略禁止 file://，本轮通过本地 HTTP 加载同一单文件产物验证，不能替代 file:// 实机复测。'] : []), '未实测 Windows Edge、华为浏览器；关闭重开测试为同一浏览器上下文的新页面。'] }
+  const report = { ok: true, scope: process.env.FUSION_COMPLETION_ONLY ? 'completion-only' : 'full', html: htmlPath, transport, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: [...(server ? ['当前管理策略禁止 file://，本轮通过本地 HTTP 加载同一单文件产物验证，不能替代 file:// 实机复测。'] : []), '未实测 Windows Edge、华为、Safari及屏幕阅读器；已覆盖Chromium完整进程退出重启，但不能外推其他浏览器。'] }
   writeFileSync(join(root, 'reports/fusion-file-check.json'), JSON.stringify(report, null, 2))
   process.stdout.write(JSON.stringify(report, null, 2) + '\n')
 } finally { await browser.close(); if (server) await new Promise(resolve => server.close(resolve)) }

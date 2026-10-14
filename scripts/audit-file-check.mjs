@@ -95,7 +95,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   await click(page, '资料库', '.side'); await click(page, '管理学 A/B 资料')
   await click(page, '专注阅读')
   const focusedWidth = await page.$eval('.side', n => n.getBoundingClientRect().width)
-  assert.equal(Math.round(focusedWidth), 176)
+  assert.equal(Math.round(focusedWidth), 0)
   for (const width of [320, 768, 1280]) {
     await page.setViewport({ width, height: 900 })
     assert.ok(await page.evaluate(() => {
@@ -110,7 +110,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   await page.keyboard.down('Alt'); await page.keyboard.down('Shift'); await page.keyboard.press('D'); await page.keyboard.up('Shift'); await page.keyboard.up('Alt')
   assert.notEqual(await page.evaluate(() => document.documentElement.dataset.theme), initialTheme)
   await page.screenshot({ path: join(root, 'reports/audit-reading-desktop.png'), fullPage: false })
-  scenarios.push('320/768/1280px 阅读栏占用正常布局空间，专注阅读可退出且侧栏收窄；新深浅色快捷键可用')
+  scenarios.push('320/768/1280px 阅读栏占用正常布局空间，专注阅读可退出且隐藏侧栏；新深浅色快捷键可用')
 
   const examFixture = structuredClone(base)
   examFixture.mrc.exam = { id: 'audit-final-question', title: '单题验收', itemIds: [tableItem.id], index: 0, startedAt: Date.now(), questionStartedAt: Date.now(), limitSeconds: 60, answers: { [tableItem.id]: { text: '必须保留的考试作答', revealed: false } } }

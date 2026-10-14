@@ -26,9 +26,12 @@ export function FusionToday() {
       <h2>按今天的精力安排</h2><p className="muted">已分配 {spent(f.state.day)} 分钟，按任务预计时长计算；暂停和刷新不会重复占用预算。</p>
       <details><summary>调整今日预算</summary><label className="field">只调整今天<BudgetSelect label="今日预算" value={f.state.day.budgetMinutes} onChange={f.setMinutes} /></label><p className="muted">明天仍用每日默认预算 {f.state.settings.minutes} 分钟。</p>
       </details>
+      <p className="muted">调整只影响今天；收工会停止今天的推荐。</p>
       {task && <button className="btn ghost" disabled={d.kind === 'resume' || f.blocked} onClick={f.closeDay}>今天先到这里</button>}
       {d.kind === 'resume' && <p className="muted">草稿已保留，可直接离开；完成当前训练后再收工。</p>}
     </section>
-    {emptySubjects.length > 0 && <aside className="subject-note"><Icon name="library" /><div><p>{emptySubjects.includes('运动生理学') ? '管理学资料已就绪。' : '管理学、运动生理学资料已就绪。'}</p><p className="muted">{emptySubjects.join('、')}可在设置中导入 JSON，或到资料库录入教材。</p></div></aside>}
+    {completed > 0 && <details className="card"><summary>今日已完成（{completed}）</summary><ul>{f.state.day.tasks.filter(t => t.status === 'completed').map(t => <li key={t.id}>{t.subject} · {t.title}</li>)}</ul></details>}
+    {task && d.kind === 'next' && task.estimatedMinutes < 15 && remaining(f.state) < 15 && <p className="muted">剩余预算不足15分钟，本次安排能在预算内完成的短任务；较长题目留待下次，不自动延长今日预算。</p>}
+    {emptySubjects.length > 0 && <aside className="subject-note"><Icon name="library" /><div><p>{emptySubjects.includes('运动生理学') ? '管理学资料已就绪。' : '管理学、运动生理学资料已就绪。'}</p><p className="muted">{emptySubjects.join('、')}可在设置中导入 JSON，或到资料库录入教材。</p><div className="actions"><button className="btn" onClick={() => f.open('settings')}>导入 JSON</button><button className="btn" onClick={() => f.open('library')}>去资料库录入</button></div></div></aside>}
   </div>
 }

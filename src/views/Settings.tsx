@@ -1,3 +1,4 @@
+import { useOptionalFusion } from '../fusion/store'
 import { useEffect, useState } from 'react'
 import { content, getItem } from '../content'
 import { useApp } from '../state/store'
@@ -6,6 +7,8 @@ import type { ReadingScale, RelationStatus } from '../types'
 
 export function Settings() {
   const app = useApp()
+  const fusion = useOptionalFusion()
+  const [allRelations, setAllRelations] = useState(false)
   const settings = app.state.settings
   const [keywordQuery, setKeywordQuery] = useState('')
   const [customItem, setCustomItem] = useState(content.items.find((item) => item.coreA)?.id || '')
@@ -18,7 +21,7 @@ export function Settings() {
   return (
     <div className="stack">
       <h1>设置与数据</h1>
-      <section className="card">
+      {!fusion && <section className="card">
         <h2>方法与原版工具</h2>
         <p className="muted">每日任务从今日训练开始。以下保留 V2.2.2 的方法说明与工具。</p>
         <div className="actions">
@@ -26,7 +29,7 @@ export function Settings() {
           <button className="btn" type="button" onClick={() => app.setView('exam')}>闭卷考试（原版）</button>
           <button className="btn" type="button" onClick={() => app.setView('mistakes')}>错漏记录</button>
         </div>
-      </section>
+      </section>}
       <section className="card">
         <h2>版本</h2>
         <p>schemaVersion {content.meta.schemaVersion}</p>
@@ -36,7 +39,7 @@ export function Settings() {
         <p className="mono">B {content.meta.sourceHashes.B}</p>
         <p className="muted">构建于 {content.meta.builtAt}。hash 变化表示源 Markdown 变了，旧记录按 itemId 迁移，对不上的进待查。</p>
       </section>
-      <section className="card">
+      {!fusion && <section className="card">
         <h2>导入导出</h2>
         <div className="actions">
           <button className="btn primary" type="button" onClick={app.exportJson}>导出 JSON</button>
@@ -63,14 +66,15 @@ export function Settings() {
             </div>
           </div>
         ) : <p className="muted">坏文件会停在预览之前。确认后才写入，写入前自动备份。</p>}
-      </section>
+      </section>}
+      {fusion && <section className="card"><h2>备份与外观</h2><p>整包备份、明暗外观和每日预算统一在全科设置中调整；字号和专注阅读使用顶部阅读栏。</p><button className="btn" onClick={() => fusion.open('settings')}>前往全科设置</button></section>}
       <section className="card">
         <h2>迁移待查 {app.state.migrationReview.length}</h2>
         <ul className="plain">
           {app.state.migrationReview.map((row) => <li key={row.attemptId}>{row.itemId} · {row.note}</li>)}
         </ul>
       </section>
-      <section className="card">
+      {!fusion && <section className="card">
         <h2>阅读显示</h2>
         <div className="actions">
           <button className="btn" type="button" onClick={() => app.updateSettings({ theme: settings.theme === 'dark' ? 'light' : 'dark' })}>{settings.theme === 'dark' ? '浅色' : '深色'}</button>
@@ -93,21 +97,22 @@ export function Settings() {
           </button>
         </div>
         <p className="muted">快捷键：Alt+1–4 切换主要页面，Alt+Shift+D 切换深浅色。页面顶部阅读栏可切换字号与专注阅读；浏览器占用快捷键时，请使用页面按钮。</p>
-      </section>
+      </section>}
       <section className="card">
-        <h2>一日时长</h2>
+        <h2>管理学训练选项</h2>
         <p className="muted">以下为原版日程参数。每日训练预算在今日作战台调整；原版闭卷计时与复测间隔继续使用原设置。</p>
-        <div className="form-grid">
+        <NumberField label="限时写作默认分钟" value={settings.day.writingMinutes} min={1} onChange={(writingMinutes) => app.updateSettings({ day: { ...settings.day, writingMinutes } })} />
+        <label className="check"><input type="checkbox" checked={settings.day.includeAppendix2} onChange={(event) => app.updateSettings({ day: { ...settings.day, includeAppendix2: event.target.checked } })} />包含附录两道完整题</label>
+        <details><summary>原版日程参数（当前全科教练不使用）</summary><p className="muted">仅保留旧版兼容值，不会改变全科每日预算、配额或休息安排。</p><div className="form-grid">
           <NumberField label="总分钟" value={settings.day.totalMinutes} onChange={(totalMinutes) => app.updateSettings({ day: { ...settings.day, totalMinutes } })} />
           <NumberField label="晚测分钟" value={settings.day.eveningMinutes} onChange={(eveningMinutes) => app.updateSettings({ day: { ...settings.day, eveningMinutes } })} />
           <NumberField label="B 级最多分钟" value={settings.day.bOnlyMaxMinutes} onChange={(bOnlyMaxMinutes) => app.updateSettings({ day: { ...settings.day, bOnlyMaxMinutes } })} />
-          <NumberField label="写作分钟" value={settings.day.writingMinutes} onChange={(writingMinutes) => app.updateSettings({ day: { ...settings.day, writingMinutes } })} />
           <NumberField label="休息间隔" value={settings.day.restEvery} onChange={(restEvery) => app.updateSettings({ day: { ...settings.day, restEvery } })} />
           <NumberField label="休息分钟" value={settings.day.restMinutes} onChange={(restMinutes) => app.updateSettings({ day: { ...settings.day, restMinutes } })} />
         </div>
         <label className="check"><input type="checkbox" checked={settings.day.protectEvening} onChange={(event) => app.updateSettings({ day: { ...settings.day, protectEvening: event.target.checked } })} />保留晚间闭卷</label>
         <label className="check"><input type="checkbox" checked={settings.day.prioritizeA26} onChange={(event) => app.updateSettings({ day: { ...settings.day, prioritizeA26: event.target.checked } })} />优先排 A 册 26 题</label>
-        <label className="check"><input type="checkbox" checked={settings.day.includeAppendix2} onChange={(event) => app.updateSettings({ day: { ...settings.day, includeAppendix2: event.target.checked } })} />包含附录两道完整题</label>
+        </details>
         <label className="check"><input type="checkbox" checked={settings.showTimer} onChange={(event) => app.updateSettings({ showTimer: event.target.checked })} />显示计时</label>
       </section>
       <section className="card">
@@ -121,10 +126,10 @@ export function Settings() {
         </div>
       </section>
       <section className="card">
-        <h2>A/B 关系审核</h2>
+<h2>A/B 关系审核</h2><label className="check"><input type="checkbox" checked={allRelations} onChange={e => setAllRelations(e.target.checked)} />显示全部关系（默认只看待审核候选）</label>
         <p className="muted">候选不会进入提示链。确认只存在这份学习记录里，不改原文。</p>
         <ul className="review">
-          {content.relations.map((rel) => {
+          {content.relations.filter(rel => allRelations || (app.state.relationOverrides[rel.id] || rel.status) === 'candidate').map((rel) => {
             const status = app.state.relationOverrides[rel.id] || rel.status
             const a = getItem(rel.aItemId)
             const b = getItem(rel.bItemId)
@@ -165,7 +170,7 @@ export function Settings() {
             <input value={customText} onChange={(event) => setCustomText(event.target.value)} />
           </label>
         </div>
-        <button className="btn" type="button" onClick={() => setCustomError(app.addCustomKeyword(customItem, customText))}>加入自定义关键词</button>
+        <button className="btn" type="button" onClick={() => setCustomError(app.addCustomKeyword(customItem, customText) ?? '已加入；下次训练这题时可作为关键词提示。')}>加入自定义关键词</button>
         {customError ? <p>{customError}</p> : null}
       </section>
     </div>
