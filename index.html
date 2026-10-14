@@ -17,7 +17,7 @@
       document.getElementById('startup-backup').addEventListener('click', function () {
         var status = document.getElementById('startup-message');
         var raw = {}, readErrors = {};
-        var keys = ['346-fusion-platform-v1','pku346-recall-v1','346-fusion-import-journal-v1','346-fusion-backup-v1','pku346-recall-backup-v1','ms346_points_v1','ms346_logs_v1','ms346_logs_archive_v1','ms346_subjects_v1','ms346_settings_v1','ms346_confusion_sets_v1'];
+        var keys = ['346-fusion-platform-v1','pku346-recall-v1','pku346-content-before-repair-v1','346-fusion-import-journal-v1','346-fusion-backup-v1','pku346-recall-backup-v1','ms346_points_v1','ms346_logs_v1','ms346_logs_archive_v1','ms346_subjects_v1','ms346_settings_v1','ms346_confusion_sets_v1'];
         keys.forEach(function (key) { try { raw[key] = localStorage.getItem(key); } catch (e) { readErrors[key] = String(e); } });
         if (!Object.keys(raw).length) { status.textContent = '本地存储不可读取，未生成空备份。请不要清除浏览器数据。'; return; }
         try {

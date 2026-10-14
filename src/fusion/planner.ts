@@ -56,18 +56,23 @@ export function rollDay(state: FusionState, now: number): FusionState {
 export function chapterKey(point: GeneralPoint): string {
   return `${point.subject}::${point.quotaChapterOverride?.trim() || point.title.match(/第\s*[一二两三四五六七八九十百零\d]+\s*章/)?.[0].replace(/\s/g, '') || `条目:${point.id}`}`
 }
+export const RELEARNING_PAUSE_MS = 20 * 60_000
+export function generalReadyAt(point: GeneralPoint): number {
+  return point.state === 'relearning' && typeof point.lastReviewedAt === 'number'
+    ? Math.max(point.dueDate, point.lastReviewedAt + RELEARNING_PAUSE_MS) : point.dueDate
+}
 export function allCandidates(state: FusionState, mrc: CoachPersisted, now: number): Candidate[] {
   const management = buildCandidates(coachInput(mrc), now).map((c, index): Candidate => ({
     module: 'mrc', itemId: c.item.id, subject: MANAGEMENT, title: c.item.title, chapterKey: `mrc::${c.item.chapterId}`,
     isNew: !c.latest, reason: c.reason, estimatedMinutes: c.estimatedMinutes,
     dueAt: c.latest?.dueAt ?? now, tier: c.latest ? 0 : c.item.coreA ? 1 : 2 + index / 1000,
   }))
-  const general = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && p.dueDate <= now)
+  const general = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && generalReadyAt(p) <= now)
     .sort((a, b) => a.dueDate - b.dueDate || compareGeneralPoints(a, b))
     .map((p): Candidate => ({ module: 'general', itemId: p.id, subject: p.subject, title: p.title, chapterKey: chapterKey(p),
       isNew: p.totalReviews === 0, reason: p.totalReviews === 0 ? '这条知识点尚未训练，先闭卷输出，再核对原文。' : '复习时间已到，先检查能否独立回忆。',
       estimatedMinutes: p.content.length >= 600 || (p.checklist?.length ?? 0) >= 5 ? 15 : 10,
-      dueAt: p.dueDate, tier: p.totalReviews === 0 ? 1 : 0 }))
+      dueAt: generalReadyAt(p), tier: p.totalReviews === 0 ? 1 : 0 }))
   return [...management, ...general]
 }
 /** Lock each day's new chapter scope. Reviews always remain eligible within the hard time budget. */
@@ -84,12 +89,28 @@ export function lockChapters(state: FusionState, mrc: CoachPersisted, now: numbe
   return JSON.stringify(selected) === JSON.stringify(rolled.day.selectedChapters) ? rolled : { ...rolled, day: { ...rolled.day, selectedChapters: selected } }
 }
 
-export function reconcileMrc(state: FusionState, mrc: CoachPersisted, now: number): FusionState {
-  // A successful module write can precede a failed platform write. Settle it in its original day first.
+/** Keep a forensic copy of retired tasks; they no longer reserve today's training budget. */
+export function retireUnavailableMrc(state: FusionState): FusionState {
+  const retired = state.day.tasks.filter(t => t.module === 'mrc' && t.status === 'in_progress' && !content.items.some(i => i.id === t.itemId))
+  if (!retired.length) return state
+  return { ...state, active: state.active && retired.some(t => t.id === state.active!.id) ? null : state.active,
+    day: { ...state.day, tasks: state.day.tasks.filter(t => !retired.includes(t)) },
+    unavailableTasks: [...new Map([...(state.unavailableTasks ?? []), ...retired].map(t => [t.id, t])).values()] }
+}
+
+export function settleSavedMrc(state: FusionState, mrc: CoachPersisted): FusionState {
   if (state.active?.module === 'mrc' && state.active.status === 'in_progress') {
     const result = mrc.attempts.find(a => a.itemId === state.active!.itemId && a.startedAt === state.active!.startedAt)
-    if (result) return rollDay(finishTask(state, result.id, result.finishedAt), now)
+    if (result) return finishTask(state, result.id, result.finishedAt)
   }
+  return state
+}
+
+export function reconcileMrc(state: FusionState, mrc: CoachPersisted, now: number): FusionState {
+  // Settle successful writes before retiring missing items or rolling into a new day.
+  const settled = settleSavedMrc(state, mrc)
+  if (settled !== state) return rollDay(settled, now)
+  state = retireUnavailableMrc(state)
   let next = rollDay(state, now)
   const recall = mrc.recall
   if (!recall || recall.phase === 'done') return next
@@ -101,7 +122,8 @@ export function reconcileMrc(state: FusionState, mrc: CoachPersisted, now: numbe
   const task: TrainingTask = { id: `fusion-resume-mrc-${recall.startedAt}-${item.id}`, module: 'mrc', itemId: item.id,
     subject: MANAGEMENT, title: item.title, chapterKey: `mrc::${item.chapterId}`, isNew: !mrc.attempts.some(a => a.itemId === item.id),
     reason: '继续上次未完成的管理学草稿与提示步骤。', estimatedMinutes: estimatedMinutes(item), status: 'in_progress', startedAt: recall.startedAt }
-  next = { ...next, active: task, day: { ...next.day, tasks: [...next.day.tasks, task] } }
+  const stale = next.day.tasks.filter(t => t.module === 'mrc' && t.status === 'in_progress')
+  next = { ...next, active: task, day: { ...next.day, tasks: [...next.day.tasks.filter(t => !stale.includes(t)), task] }, ...(stale.length ? { unavailableTasks: [...new Map([...(next.unavailableTasks ?? []), ...stale].map(t => [t.id, t])).values()] } : {}) }
   return next
 }
 export function eligible(state: FusionState, candidate: Candidate): boolean {
@@ -122,12 +144,12 @@ export function decide(state: FusionState, mrc: CoachPersisted, now: number): Fu
   const subjectLoad = (c: Candidate) => state.day.tasks.filter(t => t.subject === c.subject).reduce((s, t) => s + t.estimatedMinutes, 0) / policyFor(state, c.subject).weight
   fits.sort((a, b) => a.tier - b.tier || subjectLoad(a) - subjectLoad(b) || policyFor(state, b.subject).weight - policyFor(state, a.subject).weight || a.dueAt - b.dueAt)
   if (fits.length) return { kind: 'next', candidate: fits[0] }
-  if (candidates.length) return { kind: 'done', reason: candidates.some(c => eligible(state, c)) ? 'budget' : 'quota', pending }
+  if (candidates.some(c => eligible(state, c))) return { kind: 'done', reason: 'budget', pending }
   const mrcDue = nextWaitingDueAt(coachInput(mrc), now)
-  const future = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && p.dueDate > now).map(p => p.dueDate)
+  const future = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && generalReadyAt(p) > now).map(generalReadyAt)
   if (mrcDue !== null) future.push(mrcDue)
   if (future.length) return { kind: 'wait', dueAt: Math.min(...future), pending }
-  return { kind: 'done', reason: 'empty', pending }
+  return { kind: 'done', reason: candidates.length ? 'quota' : 'empty', pending }
 }
 export function beginTask(state: FusionState, candidate: Candidate, now: number): FusionState {
   if (state.active?.status === 'in_progress') return state

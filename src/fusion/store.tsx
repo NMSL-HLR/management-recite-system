@@ -94,7 +94,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const prepared = lockChapters(reconcileMrc(state, mrc.state, renderNow), mrc.state, renderNow)
 
   function persist(next: FusionState, recovery = false): boolean {
-    if (blockedRef.current && !recovery) { setMessage('本地记录受保护，请先导出备份并恢复数据。'); return false }
+    if ((blockedRef.current || mrc.storageBlocked) && !recovery) { setMessage('本地记录受保护，请先导出备份并恢复数据。'); return false }
     try {
       if (localStorage.getItem(JOURNAL_KEY)) throw new Error('存在未完成导入恢复日志，请重新打开程序')
       validatePlatform(next, ref.current.general)

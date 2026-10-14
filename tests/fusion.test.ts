@@ -128,7 +128,7 @@ describe('fusion coach boundaries', () => {
     s.day.closed = true
     expect(decide(s, a, now + 60 * 60000).kind).toBe('done')
   })
-  it('bounds same-day FSRS relearning even when the original scheduler says due immediately', () => {
+  it('waits twenty minutes before repeating same-day FSRS relearning', () => {
     const a = mrc(); const item = content.items.find(i => i.coreA)!
     const template = commitAttempt({ ...startRecall(item.id, now), phase: 'restate' }, item, now, a.settings.gaps, [])
     a.attempts = content.items.filter(i => i.kind !== 'reference').map((i, n) => ({ ...template, id: `history-${n}`, itemId: i.id, dueAt: now + DAY }))
@@ -142,7 +142,7 @@ describe('fusion coach boundaries', () => {
       s.session = { ...s.session!, phase: 'done', frozenDraft: '', rating: 1, resultId }
       s = finishTask(s, resultId, now + n * 1000); runs++
     }
-    expect(runs).toBe(6); expect(remaining(s)).toBe(0); expect(decide(s, a, now + 100000).kind).toBe('done')
+    expect(runs).toBe(1); expect(remaining(s)).toBe(50); expect(decide(s, a, now + 100000).kind).toBe('wait'); expect(decide(s, a, now + 20 * 60000).kind).toBe('next')
     expect(validatePlatform(s)).toEqual(s)
   })
 })

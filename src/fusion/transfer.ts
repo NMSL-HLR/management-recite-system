@@ -1,3 +1,4 @@
+import { reconcileContent, inspectPreservingImport } from '../state/contentRecovery'
 import { content } from '../content'
 import { validateMrcFields } from './validateMrc'
 import { mergeTextbook } from '../general/textbook'
@@ -9,7 +10,7 @@ import { normalizeUiSettings } from '../state/uiSettings'
 import { inspectImport } from '../engine/transfer'
 import { DATA_KEY, type Kv } from '../engine/storage'
 import { emptyGeneral, normalizeGeneral, isLegacyManagement } from '../general/data'
-import { defaultFusion } from './planner'
+import { defaultFusion, retireUnavailableMrc, settleSavedMrc } from './planner'
 import { FUSION_BACKUP_KEY, JOURNAL_KEY, PLATFORM_KEY, type FusionState } from './types'
 
 const obj = (x: unknown): x is Record<string, unknown> => Boolean(x && typeof x === 'object' && !Array.isArray(x))
@@ -29,6 +30,7 @@ export function validatePlatform(value: unknown, trustedGeneral?: GeneralData): 
   if (day.tasks.some(t => !validTask(t)) || new Set(day.tasks.map(t => t.id)).size !== day.tasks.length || (active !== null && !validTask(active))) throw new Error('训练任务不合法。')
   if (active !== null && !day.tasks.some(t => obj(active) && Object.keys(t).length === Object.keys(active).length && Object.entries(t).every(([key, v]) => active[key] === v))) throw new Error('当前任务与今日计划不一致。')
   if (day.tasks.filter(t => t.status === 'in_progress').length > 1 || (day.tasks.some(t => t.status === 'in_progress') && (!obj(active) || active.status !== 'in_progress'))) throw new Error('存在冲突的未完成任务。')
+  if (value.unavailableTasks !== undefined && (!Array.isArray(value.unavailableTasks) || value.unavailableTasks.some(t => !validTask(t)))) throw new Error('待查任务结构不合法。')
   const general = value.general === trustedGeneral && trustedGeneral ? trustedGeneral : normalizeGeneral(value.general)
   if (session !== null) {
     if (!obj(session) || !obj(active) || active.module !== 'general' || session.taskId !== active.id || session.itemId !== active.itemId || (typeof session.phase !== 'string' || !['draft', 'compare', 'done'].includes(session.phase)) || typeof session.draft !== 'string' || (session.frozenDraft !== null && typeof session.frozenDraft !== 'string') || !Array.isArray(session.checked) || session.checked.some(x => typeof x !== 'string') || (session.rating !== null && (typeof session.rating !== 'number' || ![1, 2, 3, 4].includes(session.rating)))) throw new Error('通用训练草稿不合法。')
@@ -53,16 +55,16 @@ export function validateMrcSnapshot(value: unknown, current: CoachPersisted): Co
   }
   if (parsed.recall !== null) {
     const r = parsed.recall
-    if (!obj(r) || !content.items.some(i => i.id === r.itemId) || !['draft', 'b_skeleton', 'headings', 'keywords', 'compare', 'restate', 'done'].includes(r.phase) || !num(r.startedAt) || typeof r.draft !== 'string' || typeof r.restatement !== 'string' || typeof r.termErrorDraft !== 'string' || typeof r.userNote !== 'string' || !Array.isArray(r.checkedPointIds) || !Array.isArray(r.redlineErrorIds) || !Array.isArray(r.hintSequence) || !['none', 'heading', 'keyword', 'full_answer'].includes(r.highestHintUsed)) throw new Error('管理学草稿不完整。')
+    if (!obj(r) || !['draft', 'b_skeleton', 'headings', 'keywords', 'compare', 'restate', 'done'].includes(r.phase) || !num(r.startedAt) || typeof r.draft !== 'string' || typeof r.restatement !== 'string' || typeof r.termErrorDraft !== 'string' || typeof r.userNote !== 'string' || !Array.isArray(r.checkedPointIds) || !Array.isArray(r.redlineErrorIds) || !Array.isArray(r.hintSequence) || !['none', 'heading', 'keyword', 'full_answer'].includes(r.highestHintUsed)) throw new Error('管理学草稿不完整。')
     if (r.frozenDraft !== null && (!obj(r.frozenDraft) || typeof r.frozenDraft.text !== 'string' || !num(r.frozenDraft.createdAt))) throw new Error('管理学冻结草稿不合法。')
   }
   if (parsed.exam !== null) {
     const e = parsed.exam
-    if (!obj(e) || typeof e.id !== 'string' || !Array.isArray(e.itemIds) || e.itemIds.some(id => !content.items.some(i => i.id === id)) || !num(e.index) || !num(e.startedAt) || !obj(e.answers) || (e.limitSeconds !== null && !num(e.limitSeconds, 1))) throw new Error('闭卷考试状态不合法。')
+    if (!obj(e) || typeof e.id !== 'string' || !Array.isArray(e.itemIds) || e.itemIds.some(id => typeof id !== 'string') || !num(e.index) || !num(e.startedAt) || !obj(e.answers) || (e.limitSeconds !== null && !num(e.limitSeconds, 1))) throw new Error('闭卷考试状态不合法。')
   }
   validateMrcFields(parsed)
-  return { ...defaultPersisted(), ...parsed, settings: { ...defaultSettings(), ...parsed.settings, ...normalizeUiSettings(parsed.settings),
-    gaps: { ...defaultSettings().gaps, ...parsed.settings.gaps }, day: { ...defaultSettings().day, ...parsed.settings.day } } }
+  return reconcileContent({ ...defaultPersisted(), ...parsed, settings: { ...defaultSettings(), ...parsed.settings, ...normalizeUiSettings(parsed.settings),
+    gaps: { ...defaultSettings().gaps, ...parsed.settings.gaps }, day: { ...defaultSettings().day, ...parsed.settings.day } } })
 }
 
 export interface FusionImportPlan { platform: FusionState; mrc: CoachPersisted; kind: '旧记忆引擎' | '管理学 JSON' | '全科整包' | '教材资料'; summary: string; textbook?: { packId: string; points: GeneralPoint[]; changes: TextbookChange[] } }
@@ -85,8 +87,8 @@ export function inspectFusionImport(raw: string, platform: FusionState, mrc: Coa
   }
   if (data.format === '346-fusion') {
     if (data.platformVersion !== 1) throw new Error('整包备份版本比程序新或无法识别。')
-    const next = validatePlatform(data.platform)
     const nextMrc = validateMrcSnapshot(data.mrc, mrc)
+    const next = retireUnavailableMrc(settleSavedMrc(validatePlatform(data.platform), nextMrc))
     if (next.active?.module === 'mrc' && next.active.status === 'in_progress' && (!nextMrc.recall || nextMrc.recall.phase === 'done' || nextMrc.recall.itemId !== next.active.itemId || nextMrc.recall.startedAt !== next.active.startedAt)) throw new Error('管理学当前任务与备份草稿不一致。')
     if (next.active?.module === 'general' && next.active.status === 'in_progress' && nextMrc.recall && nextMrc.recall.phase !== 'done') throw new Error('备份存在两个同时进行的训练，请先分别恢复。')
     return { platform: next, mrc: nextMrc, kind: '全科整包', summary: `恢复整包：${next.general.points.length} 条旧引擎知识点、${nextMrc.attempts.length} 条管理学训练，以及预算和未完成草稿。将替换当前两份模块数据；导入前自动备份。` }
@@ -105,7 +107,7 @@ export function inspectFusionImport(raw: string, platform: FusionState, mrc: Coa
     return { platform: { ...platform, general, active: null, session: null }, mrc, kind: '旧记忆引擎',
       summary: `导入 ${incoming.points.length} 条知识点、${incoming.logs.length} 条日志。同 id 覆盖 ${overlap} 条，其余合并；${legacy} 条旧管理学仅保留查询，不与 MRC 重复派题。旧扩展字段保留，今日预算不重置。` }
   }
-  const plan = inspectImport(raw, mrc, content.meta, new Set(content.items.map(i => i.id)))
+  const plan = inspectPreservingImport(raw, mrc)
   if (!plan.ok) throw new Error(plan.error)
   return { platform, mrc: validateMrcSnapshot(plan.next, mrc), kind: '管理学 JSON', summary: `按原导入规则合并：新增 ${plan.summary.added} 条、替换 ${plan.summary.replaced} 条、待查 ${plan.summary.unmatched} 条。${plan.summary.message}` }
 }

@@ -1,3 +1,4 @@
+import { CONTENT_BACKUP_KEY, reconcileContent, inspectPreservingImport } from './contentRecovery'
 import { downloadJson, localDateStamp } from '../browser/download'
 import { decideNext } from '../coach/decision'
 import { ensurePlan } from '../coach/planner'
@@ -8,7 +9,7 @@ import { content, getItem } from '../content'
 import { buildDayPlan, resolveEvening } from '../engine/dayplan'
 import { requestHint, revealFull, startRecall, submitDraft, goCompare, toRestate, buildHintContext } from '../engine/recall'
 import { BACKUP_KEY, DATA_KEY, safeGet, safeSet } from '../engine/storage'
-import { commitImport, inspectImport, type ImportPlan } from '../engine/transfer'
+import { commitImport, type ImportPlan } from '../engine/transfer'
 import { defaultPersisted, defaultSettings } from './defaults'
 import { applyUiSettingsToDocument, normalizeUiSettings } from './uiSettings'
 import { DEFAULT_DAY } from '../engine/dayplan'
@@ -92,27 +93,13 @@ function loadInitial(): { state: Persisted; warning: string | null; hold: boolea
       settings,
       library: { ...defaultPersisted().library, ...parsed.library },
     }
-    let warning: string | null = null
-    const hashChanged = state.sourceHashes?.A !== content.meta.sourceHashes.A || state.sourceHashes?.B !== content.meta.sourceHashes.B || state.contentVersion !== content.meta.contentVersion
-    if (hashChanged) {
-      const known = new Set(content.items.map((item) => item.id))
-      const unmatched = state.attempts.filter((attempt) => !known.has(attempt.itemId))
-      state.attempts = state.attempts.filter((attempt) => known.has(attempt.itemId))
-      state.migrationReview = [
-        ...state.migrationReview,
-        ...unmatched.map((attempt) => ({
-          itemId: attempt.itemId,
-          attemptId: attempt.id,
-          contentVersion: parsed.contentVersion,
-          note: '资料 hash 或内容版本变了，这条记录的 itemId 对不上，留在迁移待查。',
-        })),
-      ]
-      state.contentVersion = content.meta.contentVersion
-      state.sourceHashes = { ...content.meta.sourceHashes }
-      warning = unmatched.length ? `资料版本有变化。${unmatched.length} 条旧记录对不上，已放进迁移待查，没有删除。` : '资料版本有变化。已按稳定 itemId 接上现有记录。'
-    }
     validateMrcFields(state)
-    return { state, warning, hold: false }
+    const recovered = reconcileContent(state)
+    if (recovered !== state) {
+      const backup = safeSet(browserKv(), CONTENT_BACKUP_KEY, got.value)
+      if (!backup.ok) return { state: defaultPersisted(), warning: '教材迁移前备份失败，已停止写入；请先导出原始数据并释放存储空间。', hold: true }
+    }
+    return { state: recovered, warning: recovered !== state ? '已核对教材版本。完整历史记录保留；不可用题目的草稿与考试已存入管理学详细设置的迁移待查。迁移前原始备份也已保存。' : null, hold: false }
   } catch {
     return { state: defaultPersisted(), warning: '本地记录损坏。程序没有覆盖原内容。', hold: true }
   }
@@ -244,7 +231,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           prev.attempts,
           prev.settings.day,
           Date.now(),
-          Number(new Date().toISOString().slice(0, 10).replace(/-/g, '')),
+          Number(localDateStamp().replaceAll('-', '')),
           content.relations,
           prev.relationOverrides,
         ),
@@ -258,12 +245,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       startExam: (exam) => setState((prev) => ({ ...prev, view: 'exam', exam })),
       patchExam: (exam) => setState((prev) => ({ ...prev, exam })),
       stageImport: (raw) => {
-        const plan = inspectImport(raw, state, content.meta, new Set(content.items.map((item) => item.id)))
+        const plan = inspectPreservingImport(raw, state)
         if (!plan.ok) {
           setWarning(plan.error)
           setImportPlan(null)
           return
         }
+        try { validateMrcFields(plan.next) } catch { setWarning('备份记录字段不合法，未修改当前数据。'); setImportPlan(null); return }
         setImportPlan(plan)
       },
       confirmImport: () => {

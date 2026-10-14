@@ -2,7 +2,7 @@
 
 ## 环境
 
-Node.js 22.12+，执行 `npm ci` 安装锁定依赖。完整发布还需要 Python 3（标准库 zipfile）和支持本地文件的 Chromium。浏览器放在仓库外，用 `CHROME_PATH` 指定。
+Node.js 22.12+，执行 `npm ci` 安装锁定依赖。完整发布还需要支持本地文件的 Chromium。ZIP 使用锁定的 fflate 由 Node 生成，并逐条解压比对；不再依赖 Python。浏览器放在仓库外，用 `CHROME_PATH` 指定。
 
 开发服务：`npm run dev -- --host 127.0.0.1 --port 4173 --strictPort`。
 
@@ -57,3 +57,5 @@ HTTP 验证不等于 `file://` 验证。使用这一模式生成的产物必须�
 - `FUSION_COMPLETION_ONLY=1` 仅供局部排查，报告会写 `scope: completion-only`；不得将其当成完整交付结果。
 
 旧入口 `src/App.tsx`、`src/views/Today.tsx` 不进入当前入口依赖图，暂作兼容参考；`src/views` 其余视图、`src/state/store.tsx`、`src/coach` 仍由融合界面调用。两个状态层分别维护通用和管理学记录，不能整目录删除或合并后绕过受保护引擎。所有派发与跨模块完成仍走原桥接与事务日志。
+
+本轮 `scripts/pdca-check.mjs` 由完整浏览器回归调用，覆盖教材迁移完整保留、真实导出再恢复、非法草稿拒绝、迁移前备份失败以及忘记后的教练等待。Windows 构建脚本使用 npm 的系统命令入口、系统临时目录及 Chrome/Edge 默认路径探测；本环境仅实测 Linux Chromium，不把这些兼容改动写成 Windows 实机通过。

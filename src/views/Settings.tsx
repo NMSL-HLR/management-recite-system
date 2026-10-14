@@ -1,3 +1,4 @@
+import { MigrationReview } from '../components/MigrationReview'
 import { useOptionalFusion } from '../fusion/store'
 import { useEffect, useState } from 'react'
 import { content, getItem } from '../content'
@@ -68,12 +69,7 @@ export function Settings() {
         ) : <p className="muted">坏文件会停在预览之前。确认后才写入，写入前自动备份。</p>}
       </section>}
       {fusion && <section className="card"><h2>备份与外观</h2><p>整包备份、明暗外观和每日预算统一在全科设置中调整；字号和专注阅读使用顶部阅读栏。</p><button className="btn" onClick={() => fusion.open('settings')}>前往全科设置</button></section>}
-      <section className="card">
-        <h2>迁移待查 {app.state.migrationReview.length}</h2>
-        <ul className="plain">
-          {app.state.migrationReview.map((row) => <li key={row.attemptId}>{row.itemId} · {row.note}</li>)}
-        </ul>
-      </section>
+      <MigrationReview />
       {!fusion && <section className="card">
         <h2>阅读显示</h2>
         <div className="actions">

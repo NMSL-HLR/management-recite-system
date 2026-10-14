@@ -1,7 +1,7 @@
 import { BACKUP_KEY, DATA_KEY, type Kv } from '../engine/storage'
 import { FUSION_BACKUP_KEY, JOURNAL_KEY, PLATFORM_KEY } from '../fusion/types'
 
-export const RECOVERY_KEYS = [PLATFORM_KEY, DATA_KEY, JOURNAL_KEY, FUSION_BACKUP_KEY, BACKUP_KEY,
+export const RECOVERY_KEYS = [PLATFORM_KEY, DATA_KEY, 'pku346-content-before-repair-v1', JOURNAL_KEY, FUSION_BACKUP_KEY, BACKUP_KEY,
   'ms346_points_v1', 'ms346_logs_v1', 'ms346_logs_archive_v1', 'ms346_subjects_v1', 'ms346_settings_v1', 'ms346_confusion_sets_v1'] as const
 
 /** Read verbatim: damaged JSON and unfinished transaction journals are evidence. Never write here. */

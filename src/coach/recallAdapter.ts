@@ -20,9 +20,10 @@ export function prepareCoachState(state: CoachPersisted, now: number): CoachPers
   let plan = ensurePlan(state.coachState, now)
   const task = resumeTask(coachInput(state), plan)
   if (task) plan = beginTask(plan, task)
-  // JSON import still uses the original engine, which clears active Recall.
+  // Old imports may have cleared Recall without settling its Coach reservation.
   // Stale Coach tasks must not become a second source of unfinished training.
-  plan = { ...plan, tasks: plan.tasks.filter((row) => row.status !== 'in_progress' || row.itemId === state.recall?.itemId) }
+  const stale = plan.tasks.filter(row => row.status === 'in_progress' && row.itemId !== state.recall?.itemId)
+  plan = { ...plan, tasks: plan.tasks.filter(row => !stale.includes(row)), reservedMinutes: Math.max(0, plan.reservedMinutes - stale.reduce((n, row) => n + row.estimatedMinutes, 0)) }
   return { ...state, coachState: plan }
 }
 

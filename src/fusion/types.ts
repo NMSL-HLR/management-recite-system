@@ -66,6 +66,7 @@ export interface GeneralSession {
 }
 export interface FusionState {
   platformVersion: 1
+  unavailableTasks?: TrainingTask[]
   general: GeneralData
   settings: FusionSettings
   day: FusionDay

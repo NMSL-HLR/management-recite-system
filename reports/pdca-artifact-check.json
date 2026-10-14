@@ -1,0 +1,16 @@
+{
+  "releaseHtmlSha256": "a6b23ea74dd46702903136cf6caf6ee5715993116fd1b5ff9c1fa94e01986b88",
+  "sourceZipCleanInstall": true,
+  "sourceZipIndependentBuild": true,
+  "rebuiltIdenticalExceptBuiltAt": true,
+  "frozenVerificationAfterIndependentBuild": true,
+  "unitTests": 128,
+  "browserScenarios": 57,
+  "browserScope": "full",
+  "browserTransport": "http",
+  "scriptErrors": 0,
+  "extraRuntimeNetworkRequests": 0,
+  "limitations": [
+    "Managed browser prohibits file://; physical local-file/browser-device tests remain outside this verification."
+  ]
+}

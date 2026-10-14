@@ -10,11 +10,12 @@
 
 | 文件 | 用途 |
 | --- | --- |
+| [346_Fusion_Ready.zip](346_Fusion_Ready.zip) | **推荐下载**：解压即用，包含当前 HTML、使用说明与验收报告 |
 | [346_Fusion_Alpha.html](346_Fusion_Alpha.html) | **当前程序**：下载后用浏览器打开，无需安装或启动服务器 |
 | [346_Physiology_Import.json](346_Physiology_Import.json) | 独立运动生理学教材包；当前程序已内置 |
 | [346_Fusion_Alpha_Source.zip](346_Fusion_Alpha_Source.zip) | 当前源码、程序、原稿、冻结版本与文字验收报告 |
 
-在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前审计修复分支是 `fix/audit-completion`（延续前一轮审计修复），`main` 保留 V2.2.2 基线。
+在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前发布分支是 `fix/pdca-release-ready`（完成上传成品复核与 PDCA 修复），`main` 保留 V2.2.2 基线。
 
 管理学 A/B 已内置；运动生理学共8章60题，其中56题参与训练、4题原文待补充仅供查询。体育概论已内置政策热点五讲，其他资料可继续导入或录入。首页安排“开始训练 → 保存结果 → 下一项／等待复测／收工”。
 
@@ -36,7 +37,7 @@ npm run verify-fusion
 CHROME_PATH=/path/to/chromium npm run file-check
 ```
 
-完整发布：`CHROME_PATH=/path/to/chromium npm run package-release`，需要 Python 3 和支持 `file://` 的 Chromium。`package-fusion` 是相同流程的兼容命令。详见[开发与发布说明](docs/development.md)。
+完整发布：`CHROME_PATH=/path/to/chromium npm run package-release`，需要支持 `file://` 的 Chromium；ZIP 由 Node 生成，不需要 Python。`package-fusion` 是相同流程的兼容命令。详见[开发与发布说明](docs/development.md)。
 
 ## 目录与版本
 
@@ -55,8 +56,8 @@ V2.2.2、MRC Alpha Lite、346 V13 三个冻结 HTML 保留原路径，打包时�
 
 ## 验证范围
 
-本轮逐项处理结果见[三方审计闭环清单](reports/audit-closure.md)，前一轮记录见[训练体验与异常恢复](reports/audit-training-recovery.md)。托管浏览器禁止 `file://` 时，可显式使用 `FUSION_TRANSPORT=http` 验证同一单文件；报告会注明限制，不代表完成本地文件实机验证。
+本轮结果见 [PDCA 发布验收](reports/pdca-release.md)；此前逐项处理结果见[三方审计闭环清单](reports/audit-closure.md)，前一轮记录见[训练体验与异常恢复](reports/audit-training-recovery.md)。托管浏览器禁止 `file://` 时，可显式使用 `FUSION_TRANSPORT=http` 验证同一单文件；报告会注明限制，不代表完成本地文件实机验证。
 
 [用户体验审计与改进](reports/ux-journey-audit.md) · [外部审计复核与修复](reports/external-audit-review.md) · [浏览器回归结果](reports/fusion-file-check.json) · [界面审计](reports/ui-audit.md) · [运动生理学接入](reports/physiology-delivery.md) · [仓库整理记录](docs/repository-cleanup.md)
 
-当前依赖审计为 0 项告警；已加入同源多窗口写入保护、教材逐题修订、完整浏览器进程重启验证和合成大数据测量。实体设备与本地文件协议的验证限制仍保留，详见闭环清单。学习算法、冻结版本与数据标识保持不变。
+当前依赖审计为 0 项告警；已加入同源多窗口写入保护、教材逐题修订、完整浏览器进程重启验证和合成大数据测量。实体设备与本地文件协议的验证限制仍保留，详见闭环清单。学习引擎、冻结版本与数据标识保持不变。通用科目“忘记”后由教练等待 20 分钟再派同题，原 FSRS 到期字段保留；详见使用说明。

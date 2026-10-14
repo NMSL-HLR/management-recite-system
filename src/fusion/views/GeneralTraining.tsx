@@ -1,3 +1,4 @@
+import { generalReadyAt } from '../planner'
 import { useEffect } from 'react'
 import { localTime } from '../../browser/format'
 import { completenessToRating } from '../../general/scheduler'
@@ -38,8 +39,9 @@ export function GeneralTraining() {
         <div className="actions">{([1, 2, 3, 4] as Rating[]).map(r => <button className="btn" data-suggested={r === suggested} aria-describedby="rating-help" data-rating={r} key={r} onClick={() => f.rate(r)}>{LABELS[r]}</button>)}</div>
       </section>
     </>}
-    {s.phase === 'done' && <section className="card"><h2>本轮已保存</h2><p>回忆自评：{s.rating && LABELS[s.rating]}。下次复习：{localTime(point.dueDate)}。</p>
+    {s.phase === 'done' && <section className="card"><h2>本轮已保存</h2><p>回忆自评：{s.rating && LABELS[s.rating]}。下次复习：{localTime(generalReadyAt(point))}。</p>
       {(point.leaks?.length ?? 0) > 0 && <p>尚有 {point.leaks!.length} 个遗漏要点，下一次核对时重点修复。</p>}
+      {s.rating === 1 && <p>这题先休息20分钟再自动安排，避免刚看完答案立即重复。原复习记录保留，等待期间可练其他题或收工。</p>}
       <FusionNext />
     </section>}
   </div>

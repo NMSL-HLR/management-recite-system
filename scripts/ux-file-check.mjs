@@ -71,6 +71,7 @@ export async function checkJourneys({ open, seed, click, text, stores, settle, s
   assert.ok((await text(page)).includes('没有找到匹配的资料'))
   assert.ok(!(await text(page)).includes('请在旧程序导出'))
   await click(page, '清除筛选')
+  await settle(page, () => document.querySelectorAll('ul.plain > li').length === 60)
   assert.equal(await page.$$('ul.plain > li').then(n => n.length), 60)
   await click(page, '录入教材条目')
   await setValue('form input[required]', 'UX草稿保留测试')

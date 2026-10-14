@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import puppeteer from 'puppeteer-core'
 import { createServer } from 'node:http'
 import { checkJourneys } from './ux-file-check.mjs'
+import { checkPdca } from './pdca-check.mjs'
 import { checkCompletion } from './completion-check.mjs'
 import { checkAuditJourneys } from './audit-file-check.mjs'
 
@@ -20,7 +22,8 @@ const server = transport === 'http' ? createServer((req, res) => {
 }) : null
 if (server) await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const target = server ? `http://127.0.0.1:${server.address().port}/` : pathToFileURL(htmlPath).href
-const executablePath = process.env.CHROME_PATH || ['/usr/bin/chromium', '/usr/bin/google-chrome'].find(existsSync)
+const windowsBrowsers = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA].filter(Boolean).flatMap(base => ['Google/Chrome/Application/chrome.exe', 'Microsoft/Edge/Application/msedge.exe'].map(path => join(base,path)))
+const executablePath = process.env.CHROME_PATH || [...windowsBrowsers, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(existsSync)
 if (!executablePath) throw new Error('Set CHROME_PATH to a browser that supports file://.')
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files'] })
 const PK = '346-fusion-platform-v1', MK = 'pku346-recall-v1'
@@ -66,7 +69,7 @@ async function seed(page, platform, mrc) {
 }
 async function importFile(page, data) {
   await click(page, '设置数据', '.side')
-  const filePath = `/tmp/fusion-import-${process.pid}.json`; writeFileSync(filePath, JSON.stringify(data))
+  const filePath = join(tmpdir(), `fusion-import-${process.pid}.json`); writeFileSync(filePath, JSON.stringify(data))
   const input = await page.$('[data-testid="fusion-import"]'); await input.uploadFile(filePath)
   await settle(page, () => document.body.innerText.includes('导入预览'))
 }
@@ -148,7 +151,7 @@ try {
   const savedEnvelope = { format: '346-fusion', platformVersion: 1, ...await stores(page) }
   // Envelope expects the named fields platform and mrc; test download as well as restore.
   await click(page, '设置数据', '.side')
-  const downloads = join('/tmp', `fusion-download-${process.pid}`)
+  const downloads = join(tmpdir(), `fusion-download-${process.pid}`)
   const cdp = await page.createCDPSession(); await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads })
   await click(page, '导出全科整包')
   const { readdirSync } = await import('node:fs')
@@ -260,7 +263,7 @@ try {
   const { page: bad } = await open()
   const badBefore = await stores(bad)
   await click(bad, '设置数据', '.side')
-  const badFile = `/tmp/fusion-invalid-${process.pid}.json`
+  const badFile = join(tmpdir(), `fusion-invalid-${process.pid}.json`)
   writeFileSync(badFile, JSON.stringify({ points: [{ ...legacyPoint('broken', '运动生理学', '错误字段'), quotaChapterOverride: 123 }] }))
   await (await bad.$('[data-testid="fusion-import"]')).uploadFile(badFile)
   await settle(bad, () => document.body.innerText.includes('章节不合法'))
@@ -431,6 +434,7 @@ try {
   await checkAuditJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   }
   await checkCompletion({ open, seed, click, text, stores, settle, scenarios, root, browser, target, executablePath, htmlPath })
+  await checkPdca({ open, seed, click, text, stores, settle, scenarios, completeMrc })
   assert.deepEqual(errors, []); assert.deepEqual(external, [])
   const report = { ok: true, scope: process.env.FUSION_COMPLETION_ONLY ? 'completion-only' : 'full', html: htmlPath, transport, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: [...(server ? ['当前管理策略禁止 file://，本轮通过本地 HTTP 加载同一单文件产物验证，不能替代 file:// 实机复测。'] : []), '未实测 Windows Edge、华为、Safari及屏幕阅读器；已覆盖Chromium完整进程退出重启，但不能外推其他浏览器。'] }
   writeFileSync(join(root, 'reports/fusion-file-check.json'), JSON.stringify(report, null, 2))
