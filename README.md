@@ -4,13 +4,15 @@
 
 ## 下载使用
 
+**当前固定基线：2026-10-14 清理版。** [下载程序＋零记录备份](346_Clean_Baseline_2026-10-14.zip) · [使用说明](docs/clean-baseline.md)。首次使用需导入随附备份一次，之后正常训练和导出；更换HTML不会自动清理浏览器记录。
+
 | 文件 | 用途 |
 | --- | --- |
 | [346_Fusion_Alpha.html](346_Fusion_Alpha.html) | **当前程序**：下载后用浏览器打开，无需安装或启动服务器 |
 | [346_Physiology_Import.json](346_Physiology_Import.json) | 独立运动生理学教材包；当前程序已内置 |
 | [346_Fusion_Alpha_Source.zip](346_Fusion_Alpha_Source.zip) | 当前源码、程序、原稿、冻结版本与文字验收报告 |
 
-在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前修复分支是 `feat/ux-journey-audit`，`main` 保留 V2.2.2 基线。
+在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前基线分支是 `release/clean-baseline-2026-10-14`，`main` 保留 V2.2.2 基线。
 
 管理学 A/B 已内置；运动生理学共8章60题，其中56题参与训练、4题原文待补充仅供查询。体育概论需导入或录入。首页安排“开始训练 → 保存结果 → 下一项／等待复测／收工”。
 
