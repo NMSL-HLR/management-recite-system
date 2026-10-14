@@ -15,9 +15,10 @@ export function ReadingToolbar() {
       <button
         type="button"
         className={focusReading ? 'btn primary' : 'btn'}
+        aria-pressed={focusReading}
         onClick={() => app.updateSettings({ focusReading: !focusReading })}
       >
-        {focusReading ? '诵读模式开' : '诵读模式'}
+        {focusReading ? '退出专注阅读' : '专注阅读'}
       </button>
       <div className="reading-toolbar-scales">
         <span className="muted">字号</span>
@@ -25,6 +26,7 @@ export function ReadingToolbar() {
           <button
             key={scale.id}
             type="button"
+            aria-pressed={readingScale === scale.id}
             className={readingScale === scale.id ? 'btn primary' : 'btn'}
             onClick={() => app.updateSettings({ readingScale: scale.id })}
           >

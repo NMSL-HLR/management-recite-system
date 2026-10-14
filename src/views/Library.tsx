@@ -9,7 +9,8 @@ export function Library() {
   const lib = app.state.library
   const chapters = content.chapters.filter((chapter) => lib.source === 'all' || chapter.source === lib.source)
   const chapter = chapters.find((row) => row.id === lib.chapterId) || chapters[0]
-  const hits = useMemo(() => search(lib.query), [lib.query])
+  const hits = useMemo(() => search(lib.query, lib.source), [lib.query, lib.source])
+  const [showAllHits, setShowAllHits] = useState(false)
   const item = lib.itemId ? getItem(lib.itemId) : undefined
   const page = content.pages.find((row) => row.anchor === lib.pageAnchor)
   const note = app.state.notes.find((row) => row.itemId === item?.id)?.text || ''
@@ -21,7 +22,19 @@ export function Library() {
             <button key={source} type="button" className={lib.source === source ? 'btn primary' : 'btn'} onClick={() => app.setLibrary({ source, chapterId: '', itemId: '', pageAnchor: '' })}>{source === 'all' ? '全部' : `${source}册`}</button>
           ))}
         </div>
-        <input value={lib.query} placeholder="搜索原文" onChange={(event) => app.setLibrary({ query: event.target.value, itemId: '', pageAnchor: '' })} />
+        <input aria-label="搜索管理学原文" value={lib.query} placeholder="搜索当前册原文" onChange={(event) => { setShowAllHits(false); app.setLibrary({ query: event.target.value, itemId: '', pageAnchor: '' }) }} />
+        <details className="bookmarks"><summary>我的书签（{app.state.bookmarks.length}）</summary>
+          {!app.state.bookmarks.length && <p className="muted">在题目或原文页添加书签后，可从这里返回。</p>}
+          <ul className="plain">{app.state.bookmarks.map(id => {
+            const markedItem = getItem(id)
+            const markedPage = content.pages.find(row => row.anchor === id)
+            return <li key={id}>{markedItem || markedPage ? <button className="linkish" type="button" onClick={() => app.setLibrary(markedItem
+              ? { source: markedItem.source, chapterId: markedItem.chapterId, itemId: id, pageAnchor: '', query: '' }
+              : { source: markedPage!.source, chapterId: '', itemId: '', pageAnchor: id, query: '' })}>{markedItem?.title || `${markedPage!.source}册 PDF 第 ${markedPage!.page} 页`}</button>
+              : <span>原资料已不在当前版本中</span>}
+              <button className="btn ghost" type="button" aria-label={`移除书签：${markedItem?.title || markedPage?.anchor || id}`} onClick={() => app.toggleBookmark(id)}>移除</button></li>
+          })}</ul>
+        </details>
         <ul className="toc">
           {chapters.map((row) => (
             <li key={row.id}>
@@ -33,15 +46,18 @@ export function Library() {
       <div className="stack">
         {lib.query.trim() ? (
           <section className="card">
-            <h2>搜索 {hits.length} 条</h2>
+            <h2>{lib.source === 'all' ? '全部资料' : `${lib.source}册`}搜索：{hits.length} 个原文页</h2>
+            {!hits.length && <p className="muted">当前范围没有匹配内容。可缩短关键词，或切换到“全部”搜索。</p>}
+            {hits.length > 40 && <p className="muted">{showAllHits ? `显示全部 ${hits.length} 条` : `显示前 40 条，共 ${hits.length} 条`}</p>}
             <ul className="plain">
-              {hits.slice(0, 40).map((hit) => (
+              {(showAllHits ? hits : hits.slice(0, 40)).map((hit) => (
                 <li key={hit.anchor + hit.title}>
-                  <button type="button" className="linkish" onClick={() => app.setLibrary({ pageAnchor: hit.anchor, source: hit.source, chapterId: '', itemId: '' })}>{hit.source} 第 {hit.page} 页 · {hit.title}</button>
+                  <button type="button" className="linkish" onClick={() => app.setLibrary({ pageAnchor: hit.anchor, chapterId: '', itemId: '' })}>{hit.source} 第 {hit.page} 页 · {hit.title}</button>
                   <small dangerouslySetInnerHTML={{ __html: hit.snippet }} />
                 </li>
               ))}
             </ul>
+            {hits.length > 40 && !showAllHits && <button className="btn" onClick={() => setShowAllHits(true)}>显示全部搜索结果</button>}
           </section>
         ) : null}
         {page ? <PageView anchor={page.anchor} markdown={page.markdown} page={page.page} source={page.source} /> : null}
@@ -87,7 +103,7 @@ function ChapterView({ chapterId }: { chapterId: string }) {
         if (!row) return null
         return (
           <button key={row.id} className="linkish block-link" type="button" onClick={() => app.setLibrary({ itemId: row.id })}>
-            {row.kind === 'full_answer' ? '完整题' : row.kind === 'redline' ? '红线' : row.fullTextForLookup ? 'B级专题' : row.kind} · {row.title}
+            {row.kind === 'full_answer' ? '完整题' : row.kind === 'redline' ? '红线' : row.fullTextForLookup ? 'B级专题' : row.kind === 'skeleton' ? '骨架' : row.kind === 'comparison' ? '对照表' : '参考资料'} · {row.title}
           </button>
         )
       })}
@@ -102,7 +118,6 @@ function ChapterView({ chapterId }: { chapterId: string }) {
 
 function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; note: string }) {
   const app = useApp()
-  const [draft, setDraft] = useState(note)
   const ids = content.items.filter((row) => row.chapterId === item.chapterId && row.kind === item.kind)
   const index = ids.findIndex((row) => row.id === item.id)
   const sections = filterSections(item, mode)
@@ -116,8 +131,9 @@ function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; not
           <Signals item={item} />
         </div>
         <div className="actions">
+          <button className="btn ghost" type="button" onClick={() => app.setLibrary({ source: item.source, chapterId: item.chapterId, itemId: '', pageAnchor: '', query: '' })}>返回本章目录</button>
           <button className="btn" type="button" onClick={() => app.toggleBookmark(item.id)}>{app.state.bookmarks.includes(item.id) ? '已加书签' : '加书签'}</button>
-          <button className="btn primary" type="button" onClick={() => app.startRecallItem(item.id)}>提取这题</button>
+          {item.kind !== 'reference' && <button className="btn primary" type="button" onClick={() => app.startRecallItem(item.id)}>提取这题</button>}
         </div>
       </header>
       {item.source === 'A' && item.kind === 'full_answer' ? (
@@ -149,9 +165,9 @@ function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; not
         <button className="btn" type="button" disabled={index >= ids.length - 1} onClick={() => app.setLibrary({ itemId: ids[index + 1].id })}>下一题</button>
       </div>
       <label className="field">我的批注（不写回原文）
-        <textarea rows={4} value={draft} onChange={(event) => setDraft(event.target.value)} />
+        <textarea rows={4} value={note} onChange={(event) => app.saveNote(item.id, event.target.value)} />
       </label>
-      <button className="btn" type="button" onClick={() => app.saveNote(item.id, draft)}>保存批注</button>
+      <p className="muted">批注随输入自动保存，切换题目后仍保留；保存失败时页面顶部会提示。</p>
     </article>
   )
 }
@@ -191,11 +207,12 @@ function filterSections(item: StudyItem, mode: ReaderMode): Section[] {
   return item.sections
 }
 
-function search(query: string) {
+function search(query: string, source: 'A' | 'B' | 'all') {
   const q = query.trim()
   if (!q) return []
   const hits = []
   for (const page of content.pages) {
+    if (source !== 'all' && page.source !== source) continue
     const at = page.markdown.indexOf(q)
     if (at < 0) continue
     const slice = page.markdown.slice(Math.max(0, at - 24), at + q.length + 36).replace(/\s+/g, ' ')

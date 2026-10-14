@@ -17,7 +17,7 @@ import { FusionRecords } from './views/Records'
 import type { Panel } from './types'
 import { Icon } from './Icon'
 import { SKINS, useMemoryTheme } from './theme'
-import { RollbackDialog } from './components'
+import { ResumeDialog, RollbackDialog } from './components'
 
 const NAV: { id: Panel; label: string }[] = [{ id: 'today', label: '今日训练' }, { id: 'library', label: '资料库' }, { id: 'records', label: '学习记录' }, { id: 'settings', label: '设置数据' }]
 export function FusionApp() {
@@ -29,7 +29,12 @@ export function FusionApp() {
     : f.panel
   const themeButton = <button className="btn theme-switch" onClick={theme.cycle} aria-label={`当前${SKINS[theme.skin].label}，切换到${SKINS[SKINS[theme.skin].next].label}`}><Icon name="palette" /><span>{SKINS[theme.skin].label}</span></button>
   const navigation = NAV.map((item, index) => <button key={item.id} aria-current={activePanel === item.id ? 'page' : undefined} className={activePanel === item.id ? 'on' : ''} onClick={() => f.open(item.id)}><Icon name={item.id as 'today' | 'library' | 'records' | 'settings'} /><span>{item.label}</span><small>Alt+{index + 1}</small></button>)
-  const routeKey = f.panel === 'mrc' ? `mrc:${app.state.view}:${app.state.view === 'recall' ? app.state.recall?.phase : ''}` : f.panel === 'general' ? `general:${f.state.session?.phase}` : f.panel
+  const { view, recall, library, exam } = app.state
+  const moduleLocation = view === 'recall' ? [recall?.itemId, recall?.phase]
+    : view === 'library' ? [library.source, library.chapterId, library.itemId, library.pageAnchor]
+    : view === 'exam' ? [exam?.id, exam?.index] : []
+  const routeKey = f.panel === 'mrc' ? ['mrc', view, ...moduleLocation].join(':')
+    : f.panel === 'general' ? `general:${f.state.session?.itemId}:${f.state.session?.phase}` : f.panel
   useEffect(() => {
     const main = document.getElementById('study-main')
     main?.focus({ preventScroll: true })
@@ -40,14 +45,14 @@ export function FusionApp() {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
-      if (event.defaultPrevented || event.repeat || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || document.querySelector('dialog[open]') || target?.closest('input,textarea,select,[contenteditable="true"]')) return
+      if (event.defaultPrevented || event.repeat || !event.altKey || event.ctrlKey || event.metaKey || document.querySelector('dialog[open]') || target?.closest('input,textarea,select,[contenteditable="true"]')) return
       const index = Number(event.key) - 1
-      if (index >= 0 && index < NAV.length) { event.preventDefault(); f.open(NAV[index].id) }
-      if (event.key.toLowerCase() === 'd') { event.preventDefault(); app.updateSettings({ theme: app.state.settings.theme === 'dark' ? 'light' : 'dark' }) }
+      if (!event.shiftKey && index >= 0 && index < NAV.length) { event.preventDefault(); f.open(NAV[index].id) }
+      if (event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); app.updateSettings({ theme: app.state.settings.theme === 'dark' ? 'light' : 'dark' }) }
     }
     window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler)
   }, [f, app])
-  return <div className={`shell memory-shell${app.state.settings.focusReading ? ' focus-reading' : ''}`}>
+  return <div className={`shell memory-shell${f.panel === 'mrc' && app.state.settings.focusReading ? ' focus-reading' : ''}`}>
     <a className="skip-link" href="#study-main">跳到学习内容</a>
     <aside className="side"><div className="brand"><span className="brand-mark"><Icon name="book" size={26} /></span><strong>346 记忆引擎</strong><small>SPACED REPETITION</small></div><nav aria-label="主导航">{navigation}</nav><div className="side-bottom">{themeButton}<p>管理学 · 生理学 · 体育概论<br />本地学习，按自己的节奏。</p></div></aside>
     <header className="mobile-topbar"><strong>346 记忆引擎</strong>{themeButton}</header>
@@ -61,6 +66,7 @@ export function FusionApp() {
       {f.panel === 'settings' && <FusionSettingsView />}
       {f.panel === 'general' && <GeneralTraining />}
       {f.panel === 'mrc' && <>
+        <ReadingToolbar />
         <button className="btn ghost module-back" onClick={() => f.open(activePanel === 'today' ? 'today' : activePanel as Panel)}>{activePanel === 'library' ? '返回全科资料库' : activePanel === 'records' ? '返回学习记录' : activePanel === 'settings' ? '返回设置与备份' : '回到全科作战台'}</button>
         {app.state.view === 'recall' && <Recall />}{app.state.view === 'library' && <Library />}
         {app.state.view === 'archive' && <Archive />}{app.state.view === 'exam' && <Exam />}
@@ -69,7 +75,7 @@ export function FusionApp() {
       </>}
     </main>
     <nav className="mobile-nav" aria-label="移动端主导航">{navigation}</nav>
-    {f.panel === 'mrc' && <ReadingToolbar />}
     <RollbackDialog />
+    <ResumeDialog />
   </div>
 }

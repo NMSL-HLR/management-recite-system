@@ -35,12 +35,15 @@ Node.js 22.12+，执行 `npm ci` 安装锁定依赖。完整发布还需要 Pyth
 
 ## 托管环境浏览器
 
-部分系统 Chromium 禁止 `file://`。可在仓库外准备测试浏览器：
+部分托管浏览器的管理策略禁止 `file://`。不要修改或绕过该策略。可以用受支持的 HTTP 地址验证同一个单文件产物：
 
 ```bash
-npm install --prefix /tmp/mrc-fusion-browser --no-audit --no-fund @sparticuz/chromium@143.0.4
-node -e "require('/tmp/mrc-fusion-browser/node_modules/@sparticuz/chromium').executablePath().then(p=>process.stdout.write(p))"
-CHROME_PATH=/tmp/chromium npm run package-release
+FUSION_TRANSPORT=http CHROME_PATH=/usr/bin/chromium npm run file-check
+FUSION_TRANSPORT=http CHROME_PATH=/usr/bin/chromium npm run package-release
 ```
 
-此浏览器用于离线回归，不代表已完成实体设备兼容性验证。
+测试器会临时启动仅监听 `127.0.0.1` 的静态服务，只提供目标 HTML；结束后关闭。程序没有新增服务器依赖。报告明确记录 `transport: http`，排除测试页面导航和浏览器 favicon 后，仍要求零额外运行时网络请求。
+
+HTTP 验证不等于 `file://` 验证。使用这一模式生成的产物必须附带该限制，之后在允许本地文件的目标浏览器中补测。默认命令仍使用 `file://`，不会静默降级。
+
+本轮新增的 `scripts/audit-file-check.mjs` 被主回归脚本调用，覆盖真实下载、任务冲突、计时写入隔离、资料查询和故障注入。故障注入仅存在于测试脚本，产品没有测试后门。

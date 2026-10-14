@@ -3,10 +3,22 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import puppeteer from 'puppeteer-core'
+import { createServer } from 'node:http'
 import { checkJourneys } from './ux-file-check.mjs'
+import { checkAuditJourneys } from './audit-file-check.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const target = pathToFileURL(join(root, process.env.FUSION_HTML || 'dist/index.html')).href
+const htmlPath = join(root, process.env.FUSION_HTML || 'dist/index.html')
+// Explicit alternative for managed browsers which prohibit file://. This does not certify file://.
+const transport = process.env.FUSION_TRANSPORT === 'http' ? 'http' : 'file'
+const server = transport === 'http' ? createServer((req, res) => {
+  if (req.url === '/favicon.ico') { res.writeHead(204); res.end(); return }
+  if (req.url !== '/') { res.writeHead(404); res.end(); return }
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
+  res.end(readFileSync(htmlPath))
+}) : null
+if (server) await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+const target = server ? `http://127.0.0.1:${server.address().port}/` : pathToFileURL(htmlPath).href
 const executablePath = process.env.CHROME_PATH || ['/usr/bin/chromium', '/usr/bin/google-chrome'].find(existsSync)
 if (!executablePath) throw new Error('Set CHROME_PATH to a browser that supports file://.')
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files'] })
@@ -30,7 +42,10 @@ async function settle(page, predicate, ...args) { await page.waitForFunction(pre
 async function open({ withTextbook = false } = {}) {
   const context = await browser.createBrowserContext(); const page = await context.newPage()
   page.on('pageerror', e => errors.push(String(e)))
-  page.on('request', r => { if (!/^(file|blob|data):/.test(r.url())) external.push(r.url()) })
+  page.on('request', r => {
+    if (server && ((r.url() === target && r.isNavigationRequest()) || r.url() === `${target}favicon.ico`)) return
+    if (!/^(file|blob|data):/.test(r.url())) external.push(r.url())
+  })
   await page.setViewport({ width: 1280, height: 900 })
   await page.goto(target, { waitUntil: 'networkidle0' })
   await settle(page, (pk, mk) => document.body.innerText.includes('今日作战台') && Boolean(localStorage.getItem(pk)) && Boolean(localStorage.getItem(mk)), PK, MK)
@@ -411,8 +426,9 @@ try {
   assert.equal((await stores(policyPage)).platform.general.points.filter(p => p.subject === '体育概论').length, 20)
   scenarios.push('体育概论内置五讲20项资料、15道训练题和5组参考骨架，讲次查询、原文展示及重复导入刷新均正确')
   await checkJourneys({ open, seed, click, text, stores, settle, scenarios, root })
+  await checkAuditJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   assert.deepEqual(errors, []); assert.deepEqual(external, [])
-  const report = { ok: true, html: target, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: ['未实测 Windows Edge、华为浏览器；关闭重开测试为同一浏览器上下文的新页面。'] }
+  const report = { ok: true, html: htmlPath, transport, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: [...(server ? ['当前管理策略禁止 file://，本轮通过本地 HTTP 加载同一单文件产物验证，不能替代 file:// 实机复测。'] : []), '未实测 Windows Edge、华为浏览器；关闭重开测试为同一浏览器上下文的新页面。'] }
   writeFileSync(join(root, 'reports/fusion-file-check.json'), JSON.stringify(report, null, 2))
   process.stdout.write(JSON.stringify(report, null, 2) + '\n')
-} finally { await browser.close() }
+} finally { await browser.close(); if (server) await new Promise(resolve => server.close(resolve)) }

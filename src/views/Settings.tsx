@@ -92,7 +92,7 @@ export function Settings() {
             沉浸诵读 {settings.focusReading ? '开' : '关'}
           </button>
         </div>
-        <p className="muted">快捷键：Alt+1–4 切换主要页面，Alt+D 换主题。右下角浮动栏可快速切换字号与诵读模式。</p>
+        <p className="muted">快捷键：Alt+1–4 切换主要页面，Alt+Shift+D 切换深浅色。页面顶部阅读栏可切换字号与专注阅读；浏览器占用快捷键时，请使用页面按钮。</p>
       </section>
       <section className="card">
         <h2>一日时长</h2>

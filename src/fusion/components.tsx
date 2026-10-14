@@ -41,3 +41,17 @@ export function RollbackDialog() {
     <div className="actions"><button autoFocus className="btn" onClick={f.cancelRollback}>取消恢复</button><button className="btn" onClick={f.exportAll}>先导出当前整包</button><button className="btn danger" onClick={f.confirmRollback}>确认恢复旧备份</button></div>
   </dialog>
 }
+
+export function ResumeDialog() {
+  const f = useFusion()
+  const dialog = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    if (f.resumeNotice && !dialog.current?.open) dialog.current?.showModal()
+    if (!f.resumeNotice && dialog.current?.open) dialog.current.close()
+  }, [f.resumeNotice])
+  return <dialog ref={dialog} className="restore-dialog" aria-labelledby="resume-title" onCancel={f.cancelResume}>
+    <h2 id="resume-title">先处理未完成训练</h2>
+    <p>{f.resumeNotice}</p>
+    <div className="actions"><button autoFocus className="btn" onClick={f.cancelResume}>留在当前页面</button><button className="btn primary" onClick={() => { f.cancelResume(); f.start() }}>继续未完成训练</button></div>
+  </dialog>
+}

@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
+import { RecallTimer } from '../components/RecallTimer'
 import { CoachNext } from '../components/CoachNext'
 import { content, getItem } from '../content'
 import { assessExamReadiness } from '../engine/evidence'
-import { EvidenceBadge, RedlineCard, SectionList, Signals } from '../components/render'
+import { DataTable, EvidenceBadge, RedlineCard, SectionList, Signals } from '../components/render'
 import { HINT_LABEL } from '../engine/labels'
 import { useApp } from '../state/store'
 import type { StudyItem } from '../types'
@@ -32,7 +33,6 @@ export function Recall() {
   const related = ctx.confirmedSkeletonIds.map((id) => getItem(id)).filter((row): row is StudyItem => Boolean(row))
   const redlines = ctx.confirmedRedlineIds.map((id) => getItem(id)).filter((row): row is StudyItem => Boolean(row))
   const readiness = assessExamReadiness(item.checkPoints, recall.checkedPointIds)
-  const elapsed = Math.max(0, Math.round((app.now - recall.startedAt) / 1000))
   const stepLabels = ['无提示', '已确认B骨架', '源文小标题', ctx.keywords.length ? '已审核关键词' : '关键词（跳过）', '对照原文', '撤提示复述']
   const activeStep = recallStepIndex(recall.phase)
   return (
@@ -44,8 +44,8 @@ export function Recall() {
           <Signals item={item} />
         </div>
         <div className="actions">
-          {app.state.settings.showTimer ? <strong className="timer">{formatClock(elapsed)}</strong> : null}
-          <button className="btn ghost" type="button" onClick={() => app.setView('today')}>暂停，回到今日</button>
+          {app.state.settings.showTimer ? <RecallTimer startedAt={recall.startedAt} finishedAt={recall.phase === 'done' ? recall.result?.finishedAt : undefined} /> : null}
+          <button className="btn ghost" type="button" onClick={() => app.setView('today')}>回到今日，稍后继续</button>
         </div>
       </header>
       <ol className="steps">
@@ -91,28 +91,19 @@ export function Recall() {
           <div className="compare">
             <article className="card">
               <h2>揭晓前草稿</h2>
-              <pre>{recall.frozenDraft?.text || '（空）'}</pre>
+              <pre className="frozen-draft">{recall.frozenDraft?.text || '（空）'}</pre>
             </article>
             <article className="card">
               <h2>原资料</h2>
               {item.kind === 'redline' ? <RedlineCard item={item} /> : <SectionList sections={item.sections} />}
-              {item.tables.map((table, index) => (
-                <div key={index} className="table-wrap">
-                  <table>
-                    <tbody>
-                      {table.rows.map((row, r) => (
-                        <tr key={r}>{row.map((cell, c) => <td key={c}>{cell}</td>)}</tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+              {item.tables.map((table, index) => <DataTable key={index} table={table} />)}
             </article>
           </div>
           <article className="card">
             <h2>逐点核对</h2>
+            <p className="muted">已核对 {item.checkPoints.filter(p => recall.checkedPointIds.includes(p.id)).length} / {item.checkPoints.length} 项</p>
             <p className="muted">勾的是揭晓前草稿里已经有的，不是看完答案后的感觉。</p>
-            <button className="btn ghost" type="button" onClick={() => app.patchRecall({ checkedPointIds: item.checkPoints.filter((p) => p.level === 1 && p.role !== 'sports' && p.role !== 'expansion').map((p) => p.id) })}>主体小标题都写到了</button>
+            <button className="btn ghost" type="button" onClick={() => app.patchRecall({ checkedPointIds: [...new Set([...recall.checkedPointIds, ...item.checkPoints.filter((p) => p.level === 1 && p.role !== 'sports' && p.role !== 'expansion').map((p) => p.id)])] })}>主体小标题都写到了</button>
             {groups(item).map(([group, points]) => (
               <fieldset key={group}>
                 <legend>{group}</legend>
@@ -139,8 +130,8 @@ export function Recall() {
             <aside className={`warnbox ${readiness.examReady ? '' : ''}`}>
               <strong>答案完整性（考场参考，≠ 记忆证据）</strong>
               <p>{readiness.message}</p>
-              {readiness.sportsExampleMissing ? <p className="muted">体育例证：未勾选 · sportsExampleMissing</p> : null}
-              {readiness.examReady ? <p className="muted">examReady：是</p> : <p className="muted">examReady：否</p>}
+              {readiness.sportsExampleMissing ? <p className="muted">体育例证：尚未确认写出</p> : null}
+              {readiness.examReady ? <p className="muted">考场答案要素：已齐备</p> : <p className="muted">考场答案要素：仍有缺口</p>}
             </aside>
             {redlines.length ? (
               <fieldset>
@@ -175,11 +166,12 @@ export function Recall() {
           <h3>{item.title}</h3>
           <textarea rows={8} value={recall.restatement} onChange={(event) => app.patchRecall({ restatement: event.target.value })} />
           <div className="choice">
-            <span>主观信心</span>
+            <span>主观信心（1 很没把握 → 5 很有把握）</span>
             {([1, 2, 3, 4, 5] as const).map((n) => (
-              <button key={n} type="button" className={recall.selfConfidence === n ? 'btn primary' : 'btn'} onClick={() => app.patchRecall({ selfConfidence: n })}>{n}</button>
+              <button key={n} type="button" aria-pressed={(recall.selfConfidence ?? 3) === n} className={(recall.selfConfidence ?? 3) === n ? 'btn primary' : 'btn'} onClick={() => app.patchRecall({ selfConfidence: n })}>{n}</button>
             ))}
           </div>
+          <p className="muted">未选择时按原规则记录为 3（一般把握）；主观信心不改变证据等级。</p>
           <div className="choice">
             <button type="button" className={recall.postRevealNoHintPassed === true ? 'btn primary' : 'btn'} onClick={() => app.patchRecall({ postRevealNoHintPassed: true })}>复述通过</button>
             <button type="button" className={recall.postRevealNoHintPassed === false ? 'btn primary' : 'btn'} onClick={() => app.patchRecall({ postRevealNoHintPassed: false })}>复述没通过</button>
@@ -195,13 +187,14 @@ export function Recall() {
           <h2>本轮记录</h2>
           <EvidenceBadge state={recall.result.evidenceState} />
           <p>最高提示：{HINT_LABEL[recall.result.highestHintUsed]}。撤提示复述：{recall.result.postRevealNoHintPassed ? '通过' : '未通过或未记'}。信心 {recall.result.selfConfidence}。这三项分开保存。</p>
-          {recall.result.sportsExampleMissing ? <p className="muted">本轮体育例证未核对（sportsExampleMissing），与上方 evidence 等级无关。</p> : null}
+          {recall.result.sportsExampleMissing ? <p className="muted">本轮体育例证未核对，与上方提取证据等级分开记录。</p> : null}
           <p className="muted">主观信心不能把本轮改成独立提取。</p>
           <p>下次复测：{recall.result.dueAt ? new Date(recall.result.dueAt).toLocaleString() : '未安排'}。</p>
           <CoachNext />
         </section>
       ) : null}
       {recall.phase !== 'draft' && recall.frozenDraft ? <p className="muted">揭晓前草稿已冻结。</p> : null}
+      {app.state.settings.showTimer && recall.phase !== 'done' && <p className="muted">用时从本轮开始累计，包含暂离页面的时间。</p>}
       <p className="muted">一次只完成当前这一题。候选关系 {ctx.candidateRelationIds.length} 条未进入提示链。</p>
     </div>
   )
@@ -249,10 +242,4 @@ function groups(item: StudyItem) {
     map.set(point.group, list)
   }
   return [...map.entries()]
-}
-
-function formatClock(total: number): string {
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${String(s).padStart(2, '0')}`
 }

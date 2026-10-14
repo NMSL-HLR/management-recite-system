@@ -1,7 +1,8 @@
+import { downloadText, localDateStamp } from '../browser/download'
 import { useEffect, useMemo, useState } from 'react'
 import { content, getItem } from '../content'
 import { advanceExamQuestion, createExamState, examQuestionStartedAt, finalizeQuestionDuration, questionRemainSeconds } from '../engine/exam'
-import { SectionList } from '../components/render'
+import { DataTable, SectionList } from '../components/render'
 import { mulberry32 } from '../engine/dayplan'
 import { rankItems } from '../engine/priority'
 import { useApp } from '../state/store'
@@ -11,6 +12,7 @@ export function Exam() {
   const app = useApp()
   const exam = app.state.exam
   const [clock, setClock] = useState(() => Date.now())
+  const [downloadError, setDownloadError] = useState('')
   const [ending, setEnding] = useState(false)
   useEffect(() => {
     if (!exam) return
@@ -24,6 +26,10 @@ export function Exam() {
   const remain = answer.revealed && answer.durationSeconds !== undefined && exam.limitSeconds !== null
     ? exam.limitSeconds - answer.durationSeconds : questionRemainSeconds(exam, Math.max(clock, exam.questionStartedAt ?? exam.startedAt))
   const update = (partial: Partial<ExamState>) => app.patchExam({ ...exam, ...partial })
+  const exportAnswers = () => {
+    try { downloadExam(exam); setDownloadError('') }
+    catch { setDownloadError('作答下载未能发起，请检查下载权限后重试；当前作答仍保留。') }
+  }
   const goNext = () => app.patchExam(advanceExamQuestion(exam, Date.now()))
   const reveal = () => {
     const now = Date.now()
@@ -56,16 +62,17 @@ export function Exam() {
         {!answer.revealed ? (
           <button className="btn primary" type="button" onClick={reveal}>对照原文</button>
         ) : (
-          <button className="btn" type="button" onClick={goNext} disabled={exam.index >= exam.itemIds.length - 1}>下一题</button>
+          <button className="btn primary" type="button" onClick={exam.index >= exam.itemIds.length - 1 ? () => setEnding(true) : goNext}>{exam.index >= exam.itemIds.length - 1 ? '完成本次考试' : '下一题'}</button>
         )}
-        <button className="btn ghost" type="button" onClick={() => downloadExam(exam)}>导出本次作答</button>
+        <button className="btn ghost" type="button" onClick={exportAnswers}>导出本次作答</button>
         <button className="btn ghost" type="button" onClick={() => setEnding(true)}>结束</button>
       </div>
-      {ending && <section className="warnbox" role="region" aria-label="结束考试确认"><h2>结束并清除本次考试？</h2><p>本次作答不会自动成为学习档案。请先导出要保留的作答；取消可继续当前考试。</p><div className="actions"><button className="btn" onClick={() => setEnding(false)}>继续考试</button><button className="btn" onClick={() => downloadExam(exam)}>先导出本次作答</button><button className="btn danger" onClick={() => { setEnding(false); app.patchExam(null) }}>确认结束并清除</button></div></section>}
+      {downloadError && <p className="warnbox" role="alert">{downloadError}</p>}
+      {ending && <section className="warnbox" role="region" aria-label="结束考试确认"><h2>结束并清除本次考试？</h2><p>本次作答不会自动成为学习档案。请先导出要保留的作答；取消可继续当前考试。</p><div className="actions"><button className="btn" onClick={() => setEnding(false)}>继续考试</button><button className="btn" onClick={exportAnswers}>先导出本次作答</button><button className="btn danger" onClick={() => { setEnding(false); app.patchExam(null) }}>确认结束并清除</button></div></section>}
       {answer.revealed ? (
         <div className="compare">
           <article className="card"><h2>我的作答</h2><pre>{answer.text || '（空）'}</pre></article>
-          <article className="card"><h2>原资料</h2><SectionList sections={item.sections.length ? item.sections : [{ id: 't', title: item.title, sourceText: item.originalMarkdown, layer: 'normal' }]} /></article>
+          <article className="card"><h2>原资料</h2><SectionList sections={item.sections.length ? item.sections : [{ id: 't', title: item.title, sourceText: item.originalMarkdown, layer: 'normal' }]} />{item.tables.map((table, index) => <DataTable key={index} table={table} />)}</article>
         </div>
       ) : null}
     </div>
@@ -131,13 +138,7 @@ function downloadExam(exam: ExamState) {
     const answer = exam.answers[id]
     lines.push(`# ${item?.title || id}`, answer?.text || '', answer?.durationSeconds !== undefined ? `用时 ${answer.durationSeconds}s` : '', '')
   }
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'pku346-exam.txt'
-  link.click()
-  URL.revokeObjectURL(url)
+  downloadText(lines.join('\n'), `pku346-exam-${localDateStamp()}.txt`)
 }
 
 function format(total: number): string {

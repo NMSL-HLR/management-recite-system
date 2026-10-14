@@ -1,3 +1,5 @@
+import { downloadJson, localDateStamp } from '../browser/download'
+import { collectRecovery } from '../browser/recovery'
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppApiOverride, useApp } from '../state/store'
 import { content } from '../content'
@@ -38,16 +40,13 @@ interface FusionApi {
   rollbackRequested: boolean
   confirmRollback: () => void
   cancelRollback: () => void
+  resumeNotice: string | null
+  cancelResume: () => void
   dismiss: () => void
 }
 export interface LibraryDraft { subject: string; title: string; content: string; checklist: string; chapter: string }
 export const emptyLibraryDraft: LibraryDraft = { subject: '运动生理学', title: '', content: '', checklist: '', chapter: '' }
 const Ctx = createContext<FusionApi | null>(null)
-export function downloadJson(value: unknown, name: string) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }))
-  const link = document.createElement('a'); link.href = url; link.download = name; link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
 
 export function FusionProvider({ children, recoveryMessage }: { children: ReactNode; recoveryMessage: string | null }) {
   const mrc = useApp()
@@ -63,6 +62,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const [blocked, setBlocked] = useState(loaded.blocked || Boolean(recoveryMessage?.includes('失败')))
   const blockedRef = useRef(blocked)
   const [panel, setPanel] = useState<Panel>('today')
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(recoveryMessage ?? loaded.warning)
   const [importPlan, setImportPlan] = useState<FusionImportPlan | null>(null)
   const [rollbackRequested, setRollbackRequested] = useState(false)
@@ -100,6 +100,11 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     const before = current()
     const decision = decide(before, mrc.state, Date.now())
     if (decision.kind === 'resume') {
+      if (chosen && (chosen.module !== decision.task.module || chosen.itemId !== decision.task.itemId)) {
+        setResumeNotice(`《${decision.task.title}》还未完成，草稿已保留。请先完成它，再开始《${chosen.title}》。`)
+        return
+      }
+      setResumeNotice(null)
       if (!persist(before)) return
       if (decision.task.module === 'mrc') {
         if (!mrc.openModuleRecall(decision.task.itemId, decision.task.startedAt)) { setMessage('管理学草稿与当前任务冲突，原草稿已保留，请导出备份。'); return }
@@ -128,10 +133,11 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const api: FusionApi = {
     state: prepared, decision: decide(prepared, mrc.state, renderNow), panel, message,
     blocked: blocked || mrc.storageBlocked, importPlan, open, start, libraryDraft, setLibraryDraft,
+    resumeNotice, cancelResume: () => setResumeNotice(null),
     closeDay: () => { const next = current(); if (next.active?.status === 'in_progress') { setMessage('当前训练已暂停，仍可继续；完成后再收工。'); return } if (persist({ ...next, day: { ...next.day, closed: true } })) setPanel('today') },
     reopenDay: () => { const next = current(); if (persist({ ...next, day: { ...next.day, closed: false } })) setPanel('today') },
     setMinutes: (minutes, scope = 'today') => {
-      if (!Number.isInteger(minutes) || minutes < 15 || minutes > 600) return
+      if (!Number.isInteger(minutes) || minutes < 15 || minutes > 600) { setMessage('预算需要是 15–600 分钟的整数，原设置未改动。'); return }
       const next = current(); persist({ ...next, settings: scope === 'daily' ? { ...next.settings, minutes } : next.settings, day: { ...next.day, budgetMinutes: minutes } })
     },
     setPolicy: (subject, patch) => {
@@ -179,16 +185,20 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     },
     cancelImport: () => setImportPlan(null),
     exportAll: () => {
-      if (blockedRef.current || mrc.storageBlocked) {
-        const raw: Record<string, string | null> = {}
-        for (const key of [PLATFORM_KEY, DATA_KEY, JOURNAL_KEY, FUSION_BACKUP_KEY, 'ms346_points_v1', 'ms346_logs_v1', 'ms346_logs_archive_v1', 'ms346_subjects_v1', 'ms346_settings_v1', 'ms346_confusion_sets_v1']) {
-          try { raw[key] = localStorage.getItem(key) } catch { raw[key] = null }
-        }
-        downloadJson({ format: '346-fusion-recovery', raw }, '346-Protected-Raw-Recovery.json')
-        setMessage('已导出受保护的原始存储。该文件用于恢复排查，不能作为正常整包导入；原记录仍未覆盖。')
-      } else downloadJson(makeEnvelope(ref.current, mrc.state), `346-Fusion-${new Date().toISOString().slice(0, 10)}.json`)
+      try {
+        if (blockedRef.current || mrc.storageBlocked) {
+          const recovery = collectRecovery(key => localStorage.getItem(key))
+          if (!Object.keys(recovery.raw).length) { setMessage('无法读取原始存储，未生成空备份。请保留浏览器数据并恢复存储访问。'); return }
+          downloadJson(recovery, `346-Protected-Raw-Recovery-${localDateStamp()}.json`)
+          setMessage(`已发起原始存储下载${Object.keys(recovery.readErrors).length ? '（有读取失败项，详见文件）' : ''}。请检查下载列表；该文件供恢复排查，不能作为正常整包导入。`)
+        } else downloadJson(makeEnvelope(ref.current, mrc.state), `346-Fusion-${localDateStamp()}.json`)
+      } catch { setMessage('备份下载未能发起，当前记录未改动。请检查下载权限后重试。') }
     },
-    exportGeneral: () => { if (blockedRef.current) { api.exportAll(); return } downloadJson(ref.current.general, '346-memory-module.json') },
+    exportGeneral: () => {
+      if (blockedRef.current || mrc.storageBlocked) { api.exportAll(); return }
+      try { downloadJson(ref.current.general, '346-memory-module.json') }
+      catch { setMessage('备份下载未能发起，当前记录未改动。请检查下载权限后重试。') }
+    },
     rollbackRequested,
     rollback: () => setRollbackRequested(true),
     cancelRollback: () => setRollbackRequested(false),
@@ -211,6 +221,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     dismiss: () => setMessage(null),
   }
   const override = { ...mrc, stageImport: (raw: string) => { api.stageImport(raw); setPanel('settings') }, confirmImport: api.confirmImport, cancelImport: api.cancelImport, rollback: api.rollback,
+    exportJson: () => { if (mrc.storageBlocked) api.exportAll(); else mrc.exportJson() },
     setLibrary: (partial: Parameters<typeof mrc.setLibrary>[0]) => { mrc.setLibrary(partial); setPanel('mrc') },
     setView: (view: typeof mrc.state.view) => { if (view === 'today') setPanel('today'); else { mrc.setView(view); setPanel('mrc') } },
     startRecallItem: openMrcItem, startQueue: (ids: string[]) => { if (ids[0]) openMrcItem(ids[0]) }, startCoach: () => start(),

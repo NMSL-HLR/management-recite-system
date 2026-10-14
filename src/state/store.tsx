@@ -1,3 +1,4 @@
+import { downloadJson, localDateStamp } from '../browser/download'
 import { decideNext } from '../coach/decision'
 import { ensurePlan } from '../coach/planner'
 import { coachInput, prepareCoachState, startCoachRecall, startChosenRecall, commitCoachRecall, continueCoach } from '../coach/recallAdapter'
@@ -295,13 +296,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       },
       exportJson: () => {
-        const blob = new Blob([JSON.stringify({ ...state, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `pku346-recall-${new Date().toISOString().slice(0, 10)}.json`
-        link.click()
-        URL.revokeObjectURL(url)
+        try { downloadJson({ ...state, exportedAt: new Date().toISOString() }, `pku346-recall-${localDateStamp()}.json`) }
+        catch { setWarning('备份下载未能发起，当前学习记录未改动。请检查下载权限后重试。') }
       },
       dismissWarning: () => setWarning(null),
     }
