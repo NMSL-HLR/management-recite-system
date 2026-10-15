@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer-core'
 import { createServer } from 'node:http'
 import { checkJourneys } from './ux-file-check.mjs'
 import { checkPdca } from './pdca-check.mjs'
+import { checkReview } from './review-check.mjs'
 import { checkCompletion } from './completion-check.mjs'
 import { checkAuditJourneys } from './audit-file-check.mjs'
 
@@ -90,7 +91,7 @@ function legacyPoint(id, subject, title) {
     difficulty: 5, stability: 0.4, interval: 0, repetitions: 0, dueDate: Date.now() - 1000, state: 'new', totalReviews: 0, lapses: 0, extraV13: { keep: true } }
 }
 try {
-  if (!process.env.FUSION_COMPLETION_ONLY) {
+  if (!process.env.FUSION_COMPLETION_ONLY && !process.env.FUSION_REVIEW_ONLY) {
   const { page } = await open()
   const baseline = await stores(page)
   assert.equal(await page.$eval('.coach-title', n => n.textContent), first.title)
@@ -372,6 +373,7 @@ try {
   await textbook.type('[aria-label="查找资料"]', '内容待补充')
   assert.equal(await textbook.$$('ul.plain > li').then(n => n.length), 4)
   await textbook.$eval('[aria-label="查找资料"]', n => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(n, ''); n.dispatchEvent(new Event('input', { bubbles: true })) })
+  await settle(textbook, () => document.querySelectorAll('ul.plain > li').length === 60)
   await click(textbook, pack.points[0].title)
   assert.ok((await text(textbook)).includes(pack.points[0].content))
   await textbook.screenshot({ path: join(root, 'reports/physiology-library.png'), fullPage: true })
@@ -433,10 +435,13 @@ try {
   await checkJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   await checkAuditJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   }
+  if (!process.env.FUSION_REVIEW_ONLY) {
   await checkCompletion({ open, seed, click, text, stores, settle, scenarios, root, browser, target, executablePath, htmlPath })
   await checkPdca({ open, seed, click, text, stores, settle, scenarios, completeMrc })
+  }
+  await checkReview({ open, seed, click, text, stores, settle, scenarios, root })
   assert.deepEqual(errors, []); assert.deepEqual(external, [])
-  const report = { ok: true, scope: process.env.FUSION_COMPLETION_ONLY ? 'completion-only' : 'full', html: htmlPath, transport, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: [...(server ? ['当前管理策略禁止 file://，本轮通过本地 HTTP 加载同一单文件产物验证，不能替代 file:// 实机复测。'] : []), '未实测 Windows Edge、华为、Safari及屏幕阅读器；已覆盖Chromium完整进程退出重启，但不能外推其他浏览器。'] }
+  const report = { ok: true, scope: process.env.FUSION_REVIEW_ONLY ? 'review-only' : process.env.FUSION_COMPLETION_ONLY ? 'completion-only' : 'full', html: htmlPath, transport, browser: await browser.version(), scenarios, externalRequests: external, scriptErrors: errors, limitations: [...(server ? ['当前管理策略禁止 file://，本轮通过本地 HTTP 加载同一单文件产物验证，不能替代 file:// 实机复测。'] : []), '未实测 Windows Edge、华为、Safari及屏幕阅读器；已覆盖Chromium完整进程退出重启，但不能外推其他浏览器。'] }
   writeFileSync(join(root, 'reports/fusion-file-check.json'), JSON.stringify(report, null, 2))
   process.stdout.write(JSON.stringify(report, null, 2) + '\n')
 } finally { await browser.close(); if (server) await new Promise(resolve => server.close(resolve)) }

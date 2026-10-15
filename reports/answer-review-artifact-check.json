@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "5371f62332d8c45078934974c2a53d08edc50fd5",
+  "htmlSha256": "35b117e5999925875e59aaede305af73c9f64f4091e21fc74e63d2661c933e54",
+  "htmlBytes": 2063023,
+  "unitTestFiles": 18,
+  "unitTests": 160,
+  "browserScope": "full",
+  "browserScenarios": 62,
+  "transport": "http",
+  "freshSourceBuild": "identical HTML except content.meta.builtAt",
+  "protectedMrcFiles": 14,
+  "dependenciesChanged": false,
+  "actualHarmonyOSDeviceTested": false,
+  "fileProtocolTested": false
+}

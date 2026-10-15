@@ -1,3 +1,4 @@
+import { AnswerReview, HandwritingHelp } from '../components/AnswerReview'
 import { durationClock } from '../browser/format'
 import { downloadText, localDateStamp } from '../browser/download'
 import { useEffect, useMemo, useState } from 'react'
@@ -50,6 +51,7 @@ export function Exam() {
       {answer.durationSeconds !== undefined && answer.revealed ? (
         <p className="muted">本题用时 {answer.durationSeconds} 秒（对照原文时封存）。</p>
       ) : null}
+      {!answer.revealed && <HandwritingHelp />}
       <textarea
         rows={12}
         value={answer.text}
@@ -70,6 +72,7 @@ export function Exam() {
       </div>
       {downloadError && <p className="warnbox" role="alert">{downloadError}</p>}
       {ending && <section className="warnbox" role="region" aria-label="结束考试确认"><h2>结束并清除本次考试？</h2><p>本次作答不会自动成为学习档案。请先导出要保留的作答；取消可继续当前考试。</p><div className="actions"><button className="btn" onClick={() => setEnding(false)}>继续考试</button><button className="btn" onClick={exportAnswers}>先导出本次作答</button><button className="btn danger" onClick={() => { setEnding(false); app.patchExam(null) }}>确认结束并清除</button></div></section>}
+      {answer.revealed && <AnswerReview key={`${exam.id}:${item.id}`} item={item} draft={answer.text} />}
       {answer.revealed ? (
         <div className="compare">
           <article className="card"><h2>我的作答</h2><pre>{answer.text || '（空）'}</pre></article>

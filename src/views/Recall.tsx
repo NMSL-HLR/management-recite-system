@@ -1,3 +1,4 @@
+import { AnswerReview, HandwritingHelp } from '../components/AnswerReview'
 import { localTime } from '../browser/format'
 import type { ReactNode } from 'react'
 import { RecallTimer } from '../components/RecallTimer'
@@ -57,9 +58,9 @@ export function Recall() {
       </ol>
       {recall.phase === 'draft' ? (
         <section className="card">
-          <h2>闭卷草稿</h2>
+          <h2>闭卷草稿</h2><HandwritingHelp />
           <p className="muted">现在只留题目。先把能想起的骨架写下来，揭晓后不能回改这一稿。Ctrl+Enter 可提交；直接看全文会按原规则记录为重新学习。</p>
-          <textarea value={recall.draft} onChange={(event) => app.patchRecall({ draft: event.target.value })} rows={10} onKeyDown={e => { if (e.ctrlKey && e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); app.recallSubmit() } }} placeholder={'1. 定义\n2. 特点\n3. 过程\n4. 体育例证'} />
+          <textarea aria-label="闭卷草稿" value={recall.draft} onChange={(event) => app.patchRecall({ draft: event.target.value })} rows={10} onKeyDown={e => { if (e.ctrlKey && e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); app.recallSubmit() } }} placeholder={'1. 定义\n2. 特点\n3. 过程\n4. 体育例证'} />
           <div className="actions">
             <button className="btn primary" type="button" onClick={app.recallSubmit}>无提示交卷，去核对</button>
             <button className="btn" type="button" onClick={app.recallHint}>需要提示</button>
@@ -90,6 +91,7 @@ export function Recall() {
       ) : null}
       {recall.phase === 'compare' ? (
         <section className="stack">
+          <AnswerReview key={`${recall.itemId}:${recall.startedAt}`} item={item} draft={recall.frozenDraft?.text ?? ''} checked={recall.checkedPointIds} onChange={checkedPointIds => app.patchRecall({ checkedPointIds })} disabled={app.storageBlocked} onContinue={app.recallRestate} continueLabel="核对完成，去撤提示复述" />
           <div className="compare">
             <article className="card draft-pane">
               <h2>揭晓前草稿</h2>
@@ -166,7 +168,7 @@ export function Recall() {
         <section className="card">
           <h2>撤掉提示后再写一遍</h2>
           <p>只留题目。这里通过，也只说明刚看完能重现，不会把本轮改成首次无提示独立提取。</p>
-          <h3>{item.title}</h3>
+          <h3>{item.title}</h3><HandwritingHelp />
           <textarea rows={8} value={recall.restatement} onChange={(event) => app.patchRecall({ restatement: event.target.value })} />
           <div className="choice">
             <span>主观信心（1 很没把握 · 2 较没把握 · 3 一般 · 4 较有把握 · 5 很有把握）</span>
@@ -194,6 +196,7 @@ export function Recall() {
           <p className="muted">主观信心不能把本轮改成独立提取。</p>
           <p>下次复测：{recall.result.dueAt ? localTime(recall.result.dueAt) : '未安排'}。</p>
           <CoachNext />
+          <details><summary>回看本轮答题评审</summary><AnswerReview item={item} draft={recall.result.preRevealDraft?.text ?? ''} checked={recall.result.checkedPointIds} /></details>
         </section>
       ) : null}
       {recall.phase !== 'draft' && recall.frozenDraft ? <p className="muted">揭晓前草稿已冻结。</p> : null}
