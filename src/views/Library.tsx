@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { content, getItem } from '../content'
 import { DataTable, escapeHtml, RedlineCard, RichText, SectionList, Signals } from '../components/render'
+import { useOptionalFusion } from '../fusion/store'
+import { libraryCandidates } from '../fusion/planner'
 import { useApp } from '../state/store'
 import type { ReaderMode, Section, StudyItem } from '../types'
 
@@ -71,6 +73,8 @@ export function Library() {
 
 function ChapterView({ chapterId }: { chapterId: string }) {
   const app = useApp()
+  const fusion = useOptionalFusion()
+  const trainable = fusion ? libraryCandidates(fusion.state, app.state, app.now).filter(c => c.module === 'mrc' && c.chapterKey === `mrc::${chapterId}`) : []
   const chapter = content.chapters.find((row) => row.id === chapterId)
   if (!chapter) return null
   const items = content.items.filter((item) => item.chapterId === chapter.id)
@@ -84,6 +88,7 @@ function ChapterView({ chapterId }: { chapterId: string }) {
           <h1>{chapter.title}</h1>
         </div>
         <div className="actions">
+          {fusion && trainable.length > 0 && <button className="btn primary" disabled={fusion.blocked} onClick={() => fusion.requestPractice({ module: 'mrc', kind: 'chapter', title: chapter.title, itemIds: trainable.map(c => c.itemId) })}>练习本节</button>}
           <button className="btn" type="button" disabled={index <= 0} onClick={() => app.setLibrary({ chapterId: siblings[index - 1].id })}>上一章</button>
           <button className="btn" type="button" disabled={index >= siblings.length - 1} onClick={() => app.setLibrary({ chapterId: siblings[index + 1].id })}>下一章</button>
         </div>
@@ -119,6 +124,8 @@ function ChapterView({ chapterId }: { chapterId: string }) {
 
 function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; note: string }) {
   const app = useApp()
+  const fusion = useOptionalFusion()
+  const canTrain = fusion ? libraryCandidates(fusion.state, app.state, app.now).some(c => c.module === 'mrc' && c.itemId === item.id) : item.kind !== 'reference'
   const ids = content.items.filter((row) => row.chapterId === item.chapterId && row.kind === item.kind)
   const index = ids.findIndex((row) => row.id === item.id)
   const sections = filterSections(item, mode)
@@ -134,7 +141,7 @@ function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; not
         <div className="actions">
           <button className="btn ghost" type="button" onClick={() => app.setLibrary({ source: item.source, chapterId: item.chapterId, itemId: '', pageAnchor: '', query: '' })}>返回本章目录</button>
           <button className="btn" type="button" onClick={() => app.toggleBookmark(item.id)}>{app.state.bookmarks.includes(item.id) ? '已加书签' : '加书签'}</button>
-          {item.kind !== 'reference' && <button className="btn primary" type="button" onClick={() => app.startRecallItem(item.id)}>提取这题</button>}
+          {canTrain && <button className="btn primary" type="button" disabled={fusion?.blocked} onClick={() => app.startRecallItem(item.id)}>{fusion ? '练这道题' : '提取这题'}</button>}
         </div>
       </header>
       {item.source === 'A' && item.kind === 'full_answer' ? (

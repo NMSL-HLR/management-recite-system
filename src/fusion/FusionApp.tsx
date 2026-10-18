@@ -17,7 +17,7 @@ import { FusionRecords } from './views/Records'
 import type { Panel } from './types'
 import { Icon } from './Icon'
 import { SKINS, useMemoryTheme } from './theme'
-import { ResumeDialog, RollbackDialog } from './components'
+import { ResumeDialog, RollbackDialog, PracticeDialog } from './components'
 
 const NAV: { id: Panel; label: string }[] = [{ id: 'today', label: '今日训练' }, { id: 'library', label: '资料库' }, { id: 'records', label: '学习记录' }, { id: 'settings', label: '设置数据' }]
 export function FusionApp() {
@@ -82,5 +82,6 @@ export function FusionApp() {
     <nav className="mobile-nav" aria-label="移动端主导航">{navigation}</nav>
     <RollbackDialog />
     <ResumeDialog />
+    <PracticeDialog />
   </div>
 }

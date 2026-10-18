@@ -23,6 +23,11 @@ export function validatePlatform(value: unknown, trustedGeneral?: GeneralData): 
     if (!obj(p) || !num(p.weight, 1, 10) || !num(p.newCap, 0, 50) || !Number.isInteger(p.newCap) || !num(p.chapterCap, 0, 20) || !Number.isInteger(p.chapterCap)) throw new Error('科目配额设置不合法。')
   }
   if (!obj(day) || typeof day.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day.date) || !num(day.budgetMinutes, 15, 600) || typeof day.closed !== 'boolean' || !Array.isArray(day.tasks) || day.tasks.length > 1000 || !obj(day.selectedChapters)) throw new Error('今日计划结构不合法。')
+  if (day.subjects !== undefined && (!Array.isArray(day.subjects) || day.subjects.length < 1 || day.subjects.length > 100 || day.subjects.some(s => typeof s !== 'string' || !s.trim() || s.length > 200) || new Set(day.subjects).size !== day.subjects.length)) throw new Error('今日科目选择不合法。')
+  if (day.practice !== undefined) {
+    const p = day.practice
+    if (!obj(p) || typeof p.module !== 'string' || !['mrc', 'general'].includes(p.module) || typeof p.kind !== 'string' || !['item', 'chapter'].includes(p.kind) || typeof p.title !== 'string' || !p.title.trim() || p.title.length > 1000 || !Array.isArray(p.itemIds) || p.itemIds.length > 1000 || (p.kind === 'item' && p.itemIds.length > 1) || p.itemIds.some(id => typeof id !== 'string' || !id.trim()) || new Set(p.itemIds).size !== p.itemIds.length) throw new Error('自主练习范围不合法。')
+  }
   for (const chapters of Object.values(day.selectedChapters)) {
     if (!Array.isArray(chapters) || chapters.some(x => typeof x !== 'string')) throw new Error('章节范围不合法。')
   }

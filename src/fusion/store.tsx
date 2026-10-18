@@ -10,9 +10,9 @@ import { addGeneralPoint, reviewGeneral } from '../general/data'
 import { defaultPersisted } from '../state/defaults'
 import { installBuiltInTextbooks } from '../general/textbook'
 import type { Rating } from '../general/types'
-import { beginTask, decide, finishTask, lockChapters, reconcileMrc, defaultFusion, adoptAlphaDay } from './planner'
+import { beginTask, decide, finishTask, lockChapters, reconcileMrc, defaultFusion, adoptAlphaDay, selectSubjects, preparePractice, beginPractice } from './planner'
 import { inspectFusionImport, loadPlatform, makeEnvelope, validateMrcSnapshot, validatePlatform, writeBundle, type FusionImportPlan } from './transfer'
-import { FUSION_BACKUP_KEY, PLATFORM_KEY, JOURNAL_KEY, type Candidate, type FusionState, type GeneralSession, type Panel, type SubjectPolicy } from './types'
+import { FUSION_BACKUP_KEY, PLATFORM_KEY, JOURNAL_KEY, type Candidate, type FusionState, type GeneralSession, type PracticeScope, type Panel, type SubjectPolicy } from './types'
 
 interface FusionApi {
   state: FusionState
@@ -23,6 +23,12 @@ interface FusionApi {
   importPlan: FusionImportPlan | null
   open: (panel: Panel) => void
   start: (candidate?: Candidate) => void
+  setSubjects: (subjects: string[] | null) => void
+  requestPractice: (scope: PracticeScope) => void
+  practicePreview: ReturnType<typeof preparePractice> | null
+  confirmPractice: () => void
+  cancelPractice: () => void
+  endPractice: () => void
   closeDay: () => void
   reopenDay: () => void
   setMinutes: (minutes: number, scope?: 'today' | 'daily') => void
@@ -68,6 +74,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const [blocked, setBlocked] = useState(loaded.blocked || Boolean(recoveryMessage?.includes('失败')))
   const blockedRef = useRef(blocked)
   const [panel, setPanel] = useState<Panel>('today')
+  const [practiceRequest, setPracticeRequest] = useState<PracticeScope | null>(null)
   const [resumeNotice, setResumeNotice] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(recoveryMessage ?? loaded.warning)
   const [lastExportRequestedAt, setLastExportRequestedAt] = useState(() => {
@@ -139,17 +146,47 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     }
     setPanel(candidate.module === 'mrc' ? 'mrc' : 'general')
   }
+  const requestPractice = (scope: PracticeScope) => {
+    if (blockedRef.current || mrc.storageBlocked) { setMessage('本地记录受保护，请先恢复数据再训练。'); return }
+    const before = current()
+    if (before.active?.status === 'in_progress') {
+      if (scope.kind === 'item' && scope.module === before.active.module && scope.itemIds[0] === before.active.itemId) { start(); return }
+      setResumeNotice(`《${before.active.title}》还未完成，草稿已保留。请先完成它，再开始《${scope.title}》。`); return
+    }
+    setPracticeRequest(scope)
+  }
   const openMrcItem = (itemId: string) => {
     const item = content.items.find(i => i.id === itemId)
-    if (!item || item.kind === 'reference') { setMessage('这条资料用于查询，不自动生成训练。'); return }
-    const hasAttempt = mrc.state.attempts.some(a => a.itemId === itemId)
-    start({ module: 'mrc', itemId, title: item.title, subject: '体育管理学', chapterKey: `mrc::${item.chapterId}`, isNew: !hasAttempt,
-      reason: '你选择了这道管理学题，仍按原提示链记录真实表现。', estimatedMinutes: item.coreA || item.appendixFullAnswer ? 15 : item.kind === 'redline' ? 5 : 10, dueAt: Date.now(), tier: 0 })
+    if (item) requestPractice({ module: 'mrc', kind: 'item', title: item.title, itemIds: [itemId] })
   }
   const api: FusionApi = {
     state: prepared, decision: decide(prepared, mrc.state, renderNow), panel, message,
     blocked: blocked || mrc.storageBlocked, importPlan, open, start, libraryDraft, setLibraryDraft,
     resumeNotice, cancelResume: () => setResumeNotice(null),
+    setSubjects: subjects => {
+      const before = current(), next = selectSubjects(before, subjects)
+      if (next === before) { setMessage('请至少选择一个科目，或使用自动安排。'); return }
+      if (persist(next)) setMessage(before.active?.status === 'in_progress' ? '科目选择已保存。先继续当前草稿，完成后按新范围推荐。' : null)
+    },
+    requestPractice,
+    practicePreview: practiceRequest ? preparePractice(prepared, mrc.state, practiceRequest, renderNow) : null,
+    cancelPractice: () => setPracticeRequest(null),
+    confirmPractice: () => {
+      if (!practiceRequest) return
+      const before = current()
+      if (before.active?.status === 'in_progress') { setPracticeRequest(null); requestPractice(practiceRequest); return }
+      const next = beginPractice(before, mrc.state, practiceRequest, Date.now())
+      if (next === before || !next.active) { setMessage('当前范围没有可开始的题目，或追加后超出每日600分钟上限。原安排未改动。'); return }
+      if (!persist(next)) return
+      if (next.active.module === 'mrc' && !mrc.openModuleRecall(next.active.itemId, next.active.startedAt)) {
+        persist(before); setMessage('管理学训练未能开始，草稿没有被覆盖。'); return
+      }
+      setPracticeRequest(null); setMessage(null); setPanel(next.active.module === 'mrc' ? 'mrc' : 'general')
+    },
+    endPractice: () => {
+      const before = current(), { practice: _practice, ...day } = before.day
+      if (persist({ ...before, day })) setPanel('today')
+    },
     closeDay: () => { const next = current(); if (next.active?.status === 'in_progress') { setMessage('当前训练已暂停，仍可继续；完成后再收工。'); return } if (persist({ ...next, day: { ...next.day, closed: true } })) setPanel('today') },
     reopenDay: () => { const next = current(); if (persist({ ...next, day: { ...next.day, closed: false } })) setPanel('today') },
     setMinutes: (minutes, scope = 'today') => {

@@ -53,6 +53,16 @@ export interface FusionDay {
   closed: boolean
   tasks: TrainingTask[]
   selectedChapters: Record<string, string[]>
+  /** Absent means automatic. A nonempty list restricts only today's recommendations. */
+  subjects?: string[]
+  /** A finite, explicitly chosen library practice; completion never refills it. */
+  practice?: PracticeScope
+}
+export interface PracticeScope {
+  module: 'mrc' | 'general'
+  kind: 'item' | 'chapter'
+  title: string
+  itemIds: string[]
 }
 export interface GeneralSession {
   taskId: string
@@ -81,6 +91,6 @@ export type FusionDecision =
   | { kind: 'resume'; task: TrainingTask }
   | { kind: 'next'; candidate: Candidate }
   | { kind: 'wait'; dueAt: number; pending: number }
-  | { kind: 'done'; reason: 'closed' | 'budget' | 'quota' | 'empty'; pending: number }
+  | { kind: 'done'; reason: 'closed' | 'budget' | 'quota' | 'empty' | 'practice'; pending: number }
 
 export type Panel = 'today' | 'mrc' | 'general' | 'library' | 'records' | 'settings'

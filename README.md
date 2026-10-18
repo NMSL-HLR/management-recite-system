@@ -1,8 +1,10 @@
-# 346 全科备考教练 · 离线答题评审版
+# 346 全科备考教练 · 自选科目与章节练习版
 
 离线单文件考研训练程序，沿用 346 记忆引擎的三主题界面。管理学使用 MRC 主动提取与证据链，其他科目使用原通用 FSRS 模块。
 
 ## 下载使用
+
+**新增当天科目选择与资料库自主练习。** 首页默认自动安排，也可多选今天的科目；资料库可练一节或一道题。共用原训练、评审和记录，预算不足先停止，明确确认后才追加。详见[本版验收说明](reports/subject-practice-release.md)。
 
 **新增免费离线答题评审。** 手机识别手写答案后粘贴，交卷即显示原文对应、相关表述、需要检查和未匹配项。本人确认后继续原训练流程；不调用 API，不上传答案，不生成考试分数。管理学、运动生理学、体育概论及已揭晓的管理学考试均可使用。[功能与验收说明](reports/answer-review-release.md)。
 
@@ -17,7 +19,7 @@
 | [346_Physiology_Import.json](346_Physiology_Import.json) | 独立运动生理学教材包；当前程序已内置 |
 | [346_Fusion_Alpha_Source.zip](346_Fusion_Alpha_Source.zip) | 当前源码、程序、原稿、冻结版本与文字验收报告 |
 
-在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前发布分支是 `feat/offline-answer-review`（在已完成 PDCA 修复的版本上增加离线评审），`main` 保留 V2.2.2 基线。
+在 GitHub 文件页点击 **Download raw file** 下载，不要把网页另存为程序。当前发布分支是 `feat/daily-subject-practice`（基于离线评审版增加自主选择，原分支保留），`main` 保留 V2.2.2 基线。
 
 管理学 A/B 已内置；运动生理学共8章60题，其中56题参与训练、4题原文待补充仅供查询。体育概论已内置政策热点五讲，其他资料可继续导入或录入。首页安排“开始训练 → 保存结果 → 下一项／等待复测／收工”。
 
@@ -58,7 +60,7 @@ V2.2.2、MRC Alpha Lite、346 V13 三个冻结 HTML 保留原路径，打包时�
 
 ## 验证范围
 
-本轮结果见 [离线评审发布验收](reports/answer-review-release.md)；前版结果见 [PDCA 发布验收](reports/pdca-release.md)；此前逐项处理结果见[三方审计闭环清单](reports/audit-closure.md)，前一轮记录见[训练体验与异常恢复](reports/audit-training-recovery.md)。托管浏览器禁止 `file://` 时，可显式使用 `FUSION_TRANSPORT=http` 验证同一单文件；报告会注明限制，不代表完成本地文件实机验证。
+本轮结果见 [自选科目与章节练习验收](reports/subject-practice-release.md)；前版结果见 [离线评审发布验收](reports/answer-review-release.md) 与 [PDCA 发布验收](reports/pdca-release.md)；此前逐项处理结果见[三方审计闭环清单](reports/audit-closure.md)，前一轮记录见[训练体验与异常恢复](reports/audit-training-recovery.md)。托管浏览器禁止 `file://` 时，可显式使用 `FUSION_TRANSPORT=http` 验证同一单文件；报告会注明限制，不代表完成本地文件实机验证。
 
 [用户体验审计与改进](reports/ux-journey-audit.md) · [外部审计复核与修复](reports/external-audit-review.md) · [浏览器回归结果](reports/fusion-file-check.json) · [界面审计](reports/ui-audit.md) · [运动生理学接入](reports/physiology-delivery.md) · [仓库整理记录](docs/repository-cleanup.md)
 

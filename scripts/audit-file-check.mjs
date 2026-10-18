@@ -24,7 +24,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   active.mrc.library = { ...active.mrc.library, source: other.source, itemId: other.id, chapterId: other.chapterId, pageAnchor: '', query: '' }
   await seed(page, active.platform, active.mrc)
   await click(page, '资料库', '.side'); await click(page, '管理学 A/B 资料')
-  await click(page, '提取这题')
+  await click(page, '练这道题')
   await settle(page, () => Boolean(document.querySelector('dialog[open]')))
   assert.ok((await page.$eval('dialog[open]', n => n.innerText)).includes(first.title))
   assert.equal(await page.evaluate(() => document.activeElement.textContent), '留在当前页面')
@@ -32,7 +32,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   assert.deepEqual((await stores(page)).platform.day.tasks, active.platform.day.tasks)
   await page.keyboard.press('Escape')
   assert.equal(await page.$eval('main h1', n => n.textContent), other.title)
-  await click(page, '提取这题'); await click(page, '继续未完成训练', 'dialog[open]')
+  await click(page, '练这道题'); await click(page, '继续未完成训练', 'dialog[open]')
   assert.equal(await page.$eval('textarea', n => n.value), '尚未结束的原始草稿')
   assert.equal((await stores(page)).platform.day.tasks.length, 1)
   scenarios.push('改选另一题先说明未完成任务；Esc 保留当前页面，确认恢复原稿且不重复扣预算')

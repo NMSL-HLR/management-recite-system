@@ -65,3 +65,9 @@ HTTP 验证不等于 `file://` 验证。使用这一模式生成的产物必须�
 `src/review/` 为纯派生分析，`AnswerReview` 只通过既有核对回调接入两种训练；没有新增学习数据格式。`tests/review.test.ts` 覆盖格式、数字/符号/方向/否定词、来源边界、空值、重复与计算上限。`scripts/review-check.mjs` 接入完整浏览器回归，覆盖手机尺寸、确认取消、持久化、失败路径、报告下载和考试隔离。
 
 调试可用 `FUSION_REVIEW_ONLY=1 FUSION_TRANSPORT=http npm run file-check`，生成的报告明确为 `review-only`。发布命令拒绝这类局部测试变量，必须完成整个套件。评审可用性不等于已测过实际鸿蒙设备：目前实际浏览器为云端 Chromium，手机识字和原生粘贴仍需机型验证。
+
+## 当日科目与自主练习
+
+`src/fusion/planner.ts` 增加当天科目过滤、资料库候选与有限练习范围；`FusionDay.subjects` / `practice` 为可选字段，缺省使用旧行为，沿原整包导出与校验，不改版本号和原学习记录。`store.tsx` 提供显式预览/确认与追加今日预算入口。UI覆盖 Today、Next、两种资料库和统一对话框。
+
+`tests/selection.test.ts` 覆盖科目隔离、旧格式读取、次日重置、有限章节、提前复习、预算上限和整包兼容；`scripts/selection-check.mjs` 覆盖真实浏览器交互与写入故障。调试可用 `FUSION_SELECTION_ONLY=1 FUSION_TRANSPORT=http npm run file-check`；局部报告不算发布验收，完整发布命令拒绝该环境变量。
