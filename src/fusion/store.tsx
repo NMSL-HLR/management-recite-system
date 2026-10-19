@@ -65,7 +65,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const loaded = useMemo(() => {
     const loaded = loadPlatform(localStorage, Date.now())
     if (!loaded.blocked && !localStorage.getItem(PLATFORM_KEY)) loaded.state = adoptAlphaDay(loaded.state, mrc.state, Date.now())
-    const general = loaded.blocked || mrc.storageBlocked ? loaded.state.general : installBuiltInTextbooks(loaded.state.general, Date.now())
+    const general = loaded.blocked || mrc.storageBlocked ? loaded.state.general : installBuiltInTextbooks(loaded.state.general, Date.now(), loaded.state.active?.status === 'in_progress' ? loaded.state.active.itemId : undefined)
     return { ...loaded, state: { ...loaded.state, general }, needsSave: general !== loaded.state.general }
   }, [])
   const [state, setState] = useState(loaded.state)
@@ -237,7 +237,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
       try {
         if (importPlan.textbook) revised = applyTextbookChanges(ref.current.general, importPlan.textbook.points, importPlan.textbook.packId, selectedRevisions, ref.current.active?.status === 'in_progress' ? ref.current.active.itemId : undefined)
       } catch (error) { setMessage(error instanceof Error ? error.message : '教材修订无法应用'); return }
-      const platform = { ...importPlan.platform, general: installBuiltInTextbooks(revised, Date.now()) }
+      const platform = { ...importPlan.platform, general: installBuiltInTextbooks(revised, Date.now(), importPlan.platform.active?.status === 'in_progress' ? importPlan.platform.active.itemId : undefined) }
       if (importPlan.kind === '教材资料') {
         // New material can enter today's chapter scope without clearing completed work or budgets.
         const selected = { ...platform.day.selectedChapters }
@@ -284,7 +284,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
         const previous = JSON.parse(raw)
         if (!previous || typeof previous !== 'object' || ![PLATFORM_KEY, DATA_KEY].every(key => previous[key] === null || typeof previous[key] === 'string')) throw new Error('导入前备份结构不完整，当前数据未改动。')
         const platform = previous[PLATFORM_KEY] ? validatePlatform(JSON.parse(previous[PLATFORM_KEY])) : defaultFusion(Date.now())
-        platform.general = installBuiltInTextbooks(platform.general, Date.now())
+        platform.general = installBuiltInTextbooks(platform.general, Date.now(), platform.active?.status === 'in_progress' ? platform.active.itemId : undefined)
         const mrcState = previous[DATA_KEY] ? validateMrcSnapshot(JSON.parse(previous[DATA_KEY]), mrc.state) : defaultPersisted()
         const wrote = writeBundle(localStorage, platform, mrcState, false)
         if (wrote.needsRecovery || (!wrote.ok && localStorage.getItem(JOURNAL_KEY))) { window.location.reload(); return }

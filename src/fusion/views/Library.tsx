@@ -34,7 +34,7 @@ export function FusionLibrary() {
     {chapters.length > 0 && <label className="field">按章节查询<select aria-label="资料章节" value={chapterFilter} onChange={e => { setChapterFilter(e.target.value); setLookup(null) }}><option value="">全部章节（{subjectPoints.length}题）</option>{chapters.map(c => <option key={c}>{c}</option>)}</select></label>}
     {chapterNote && <aside className="card"><p className="kicker">原稿章前说明</p><pre>{chapterNote}</pre></aside>}
     {subjectPoints.some(p => p.sourcePackId === physiologyPack.packId) && <details><summary>《运动生理学》原稿说明与待补充题</summary><p>本次内置8章60题，其中56题进入训练，4题含“内容待补充”，暂仅供查询。核对清单取自原文小标题，不是自动评分。正文按原稿保存，未进行知识准确性审核或补写。</p><pre>{physiologyPrefaceText}</pre></details>}
-    {subject === '体育概论' && <details><summary>政策热点班 · 五讲资料说明</summary><p>15道作业参与训练，5组补漏骨架仅供查询。正文按上传原稿保留，政策时效与事实未在录入时另行核验。</p><pre>{policyPack.preface}</pre></details>}
+    {subject === '体育概论' && <details><summary>政策热点班 · 六讲资料说明</summary><p>18道课后题参与训练，6讲积木及跨讲共享、拼装说明共8组仅供查询。已直接替换为2026-10-18版，保留学习记录；未完成题在完成并重新打开程序后更新。正文仅清理排版标记，原稿保留；政策时效与事实未另行核验。</p><pre>{policyPack.preface}</pre></details>}
     <label className="field">搜索当前科目<input aria-label="查找资料" placeholder="查标题、正文、章节或核对要点" value={query} onChange={e => { setQuery(e.target.value); setLookup(null) }} /></label>
     <p className="muted" role="status">{subject === 'legacy' ? '旧管理学' : subject} · 显示 {points.length} / {subjectPoints.length} 题</p>
     {(query || chapterFilter) && <button className="btn ghost" onClick={() => { setQuery(''); setChapterFilter(''); setLookup(null) }}>清除筛选</button>}

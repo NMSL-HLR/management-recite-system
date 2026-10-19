@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-19",
+  "baseCommit": "2be376b3324e354f8967496038d4a3843f5f9c83",
+  "htmlSha256": "bfd4d20b5bac813ed87fc0aa7097d3fae696c8b41b222fc5362750268da43387",
+  "htmlBytes": 2260633,
+  "sourceHash": "c4498830d75ae6e9aecd90a5d76deaed53ebbc4f4c337ce977972895a9e11f33",
+  "uploadedSourceByteIdentical": true,
+  "numberedBlocks": 664,
+  "trainingQuestions": 18,
+  "referenceBlocks": 8,
+  "retainedIds": 20,
+  "unitTests": 177,
+  "browserScenarios": 70,
+  "scope": "full",
+  "transport": "http",
+  "freshSourceBuild": "identical HTML except content.meta.builtAt",
+  "actualHarmonyOSDeviceTested": false,
+  "fileProtocolTested": false
+}

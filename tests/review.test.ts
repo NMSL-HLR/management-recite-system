@@ -118,9 +118,9 @@ describe('source-grounded rubrics', () => {
   })
   it('uses policy paragraphs, not just their titles', () => {
     const p = policyPack.points[0], r = generalRubric(p)
-    expect(r).toHaveLength(7)
-    expect(r[0].reference).toContain('政策明确目标')
-    expect(r[0].reference).not.toContain('财政投入')
+    expect(r).toHaveLength(9)
+    expect(r[0].reference).toContain('群众持续参与')
+    expect(r[0].reference).not.toContain('财政能力')
     expect(reviewAnswer(p.content, r).rows.every(x => x.status === 'matched')).toBe(true)
   })
   it('refuses ambiguous or absent paragraph mappings, and never assigns the whole answer to every label', () => {
