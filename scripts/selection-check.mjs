@@ -99,14 +99,14 @@ export async function checkSelection({ open, seed, click, text, stores, settle, 
   await page.evaluate(() => window.restoreScopeStorage()); await click(page, '暂不开始', 'dialog[open]')
   scenarios.push('科目选择和自主练习保存失败时不显示假成功、不占预算、不创建草稿；弹窗可取消并保留原始存储')
 
-  const contents = JSON.parse(readFileSync(join(root, 'src/data/generated/content.json'), 'utf8'))
+  const contents = JSON.parse(readFileSync(join(root, 'src/data/generated/management-ultimate.json'), 'utf8'))
   const first = contents.items.find(i => i.coreA)
   // The shared legacy MRC completion helper exercises desktop pointer coordinates.
   await page.setViewport({ width: 1280, height: 900 })
   const mrcFixture = structuredClone(base)
   mrcFixture.mrc.library = { ...mrcFixture.mrc.library, source: 'A', chapterId: first.chapterId, itemId: '', pageAnchor: '', query: '' }
   await seed(page, mrcFixture.platform, mrcFixture.mrc)
-  await library(); await click(page, '管理学 A/B 资料'); await click(page, '练习本节')
+  await library(); await click(page, '管理学资料'); await click(page, '练习本节')
   await click(page, '确认开始练习', 'dialog[open]')
   assert.equal((await stores(page)).platform.active.module, 'mrc')
   await completeMrc(page)

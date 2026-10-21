@@ -18,7 +18,7 @@ export function Recall() {
     return (
       <div className="stack">
         <h1>主动提取</h1>
-        <p>先写揭晓前的骨架。提示只来自已确认的 B 册关系，或这道题自己的源文小标题。</p>
+        <p>先写揭晓前的骨架。当前新版使用源文小标题；没有已确认骨架或关键词时，原流程会跳过对应提示层。</p>
         <ul className="plain">
           {queue.map((item) => (
             <li key={item.id}>
@@ -35,13 +35,13 @@ export function Recall() {
   const related = ctx.confirmedSkeletonIds.map((id) => getItem(id)).filter((row): row is StudyItem => Boolean(row))
   const redlines = ctx.confirmedRedlineIds.map((id) => getItem(id)).filter((row): row is StudyItem => Boolean(row))
   const readiness = assessExamReadiness(item.checkPoints, recall.checkedPointIds)
-  const stepLabels = ['无提示', '已确认B骨架', '源文小标题', ctx.keywords.length ? '已审核关键词' : '关键词（跳过）', '对照原文', '撤提示复述']
+  const stepLabels = ['无提示', ctx.confirmedSkeletonIds.length ? '已确认B骨架' : '关联骨架（跳过）', '源文小标题', ctx.keywords.length ? '已审核关键词' : '关键词（跳过）', '对照原文', '撤提示复述']
   const activeStep = recallStepIndex(recall.phase)
   return (
     <div className="stack recall-page">
       <header className="page-head">
         <div>
-          <p className="kicker">{item.source === 'A' ? (item.coreA ? 'A册完整题' : 'A册附录完整题') : item.fullTextForLookup ? 'B册骨架题 · 全文供查阅' : item.kind === 'redline' ? '答题红线' : 'B册骨架题'}</p>
+          <p className="kicker">{item.coreA ? '管理学 ultimate · 正文完整题' : '管理学附录'}</p>
           <h1>{item.title}</h1>
           <Signals item={item} />
         </div>

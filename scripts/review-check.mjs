@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 export async function checkReview({ open, seed, click, text, stores, settle, scenarios, root }) {
-  const c = JSON.parse(readFileSync(join(root, 'src/data/generated/content.json'), 'utf8'))
+  const c = JSON.parse(readFileSync(join(root, 'src/data/generated/management-ultimate.json'), 'utf8'))
   const item = c.items.find(i => i.coreA), pk = '346-fusion-platform-v1'
   const put = (page, value) => page.$eval('textarea', (el, value) => {
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, value)

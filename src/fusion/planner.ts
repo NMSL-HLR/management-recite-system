@@ -92,9 +92,16 @@ export function lockChapters(state: FusionState, mrc: CoachPersisted, now: numbe
 /** Keep a forensic copy of retired tasks; they no longer reserve today's training budget. */
 export function retireUnavailableMrc(state: FusionState): FusionState {
   const retired = state.day.tasks.filter(t => t.module === 'mrc' && t.status === 'in_progress' && !content.items.some(i => i.id === t.itemId))
-  if (!retired.length) return state
+  const selectedChapters = { ...state.day.selectedChapters }
+  const selected = selectedChapters[MANAGEMENT]
+  const validChapterKeys = new Set(content.chapters.map(c => `mrc::${c.id}`))
+  const staleChapters = selected?.some(key => !validChapterKeys.has(key))
+  if (staleChapters) delete selectedChapters[MANAGEMENT]
+  const { practice, ...restDay } = state.day
+  const stalePractice = practice?.module === 'mrc' && practice.itemIds.some(id => !content.items.some(i => i.id === id))
+  if (!retired.length && !staleChapters && !stalePractice) return state
   return { ...state, active: state.active && retired.some(t => t.id === state.active!.id) ? null : state.active,
-    day: { ...state.day, tasks: state.day.tasks.filter(t => !retired.includes(t)) },
+    day: { ...restDay, ...(!stalePractice && practice ? { practice } : {}), selectedChapters, tasks: state.day.tasks.filter(t => !retired.includes(t)) },
     unavailableTasks: [...new Map([...(state.unavailableTasks ?? []), ...retired].map(t => [t.id, t])).values()] }
 }
 

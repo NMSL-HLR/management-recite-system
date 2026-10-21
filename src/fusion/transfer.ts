@@ -51,7 +51,7 @@ export function validateMrcSnapshot(value: unknown, current: CoachPersisted): Co
   const plan = inspectImport(JSON.stringify(value), current, content.meta, new Set(content.items.map(i => i.id)))
   if (!plan.ok) throw new Error(plan.error)
   if (!obj(value)) throw new Error('管理学记录不合法。')
-  if (plan.summary.crossVersion || plan.summary.crossSchema) throw new Error('整包恢复需要相同教材版本；不同版本请单独导入管理学 JSON。')
+  if (plan.summary.crossSchema || (plan.summary.crossVersion && value.contentVersion !== '2026-10-11-v1')) throw new Error('这份备份的教材或数据结构版本不受支持，请单独导入管理学 JSON。')
   for (const key of ['notes', 'bookmarks', 'customKeywords', 'migrationReview', 'recallQueue']) if (!Array.isArray(value[key])) throw new Error(`管理学备份缺少 ${key}。`)
   for (const key of ['relationOverrides', 'keywordOverrides', 'settings', 'library']) if (!obj(value[key])) throw new Error(`管理学备份缺少 ${key}。`)
   const parsed = value as unknown as CoachPersisted
@@ -96,7 +96,7 @@ export function inspectFusionImport(raw: string, platform: FusionState, mrc: Coa
     const next = retireUnavailableMrc(settleSavedMrc(validatePlatform(data.platform), nextMrc))
     if (next.active?.module === 'mrc' && next.active.status === 'in_progress' && (!nextMrc.recall || nextMrc.recall.phase === 'done' || nextMrc.recall.itemId !== next.active.itemId || nextMrc.recall.startedAt !== next.active.startedAt)) throw new Error('管理学当前任务与备份草稿不一致。')
     if (next.active?.module === 'general' && next.active.status === 'in_progress' && nextMrc.recall && nextMrc.recall.phase !== 'done') throw new Error('备份存在两个同时进行的训练，请先分别恢复。')
-    return { platform: next, mrc: nextMrc, kind: '全科整包', summary: `恢复整包：${next.general.points.length} 条旧引擎知识点、${nextMrc.attempts.length} 条管理学训练，以及预算和未完成草稿。将替换当前两份模块数据；导入前自动备份。` }
+    return { platform: next, mrc: nextMrc, kind: '全科整包', summary: `恢复整包：${next.general.points.length} 条旧引擎知识点、${nextMrc.attempts.length} 条管理学训练，以及预算和未完成草稿。旧教材记录保留；不在当前教材的题目、草稿及考试归入管理学待查，不计入新题成绩。将替换当前两份模块数据；导入前自动备份。` }
   }
   if (platform.active?.status === 'in_progress' || (mrc.recall && mrc.recall.phase !== 'done')) throw new Error('请先完成当前训练，再合并旧备份；当前草稿已保留。完整整包恢复可替换草稿。')
   if (Array.isArray(data.points)) {

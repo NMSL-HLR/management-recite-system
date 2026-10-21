@@ -4,6 +4,8 @@ import { mrcRubric, generalRubric } from '../src/review/rubric'
 import { reviewReport } from '../src/review/report'
 import { canonical } from '../src/review/text'
 import type { ReviewPoint } from '../src/review/types'
+import legacy from '../src/data/generated/content.json'
+import type { ContentBundle } from '../src/types'
 import { content } from '../src/content'
 import { physiologyPack, policyPack } from '../src/general/textbook'
 const point = (reference: string, patch: Partial<ReviewPoint> = {}): ReviewPoint => ({ id: 'p', label: '核对点', reference, group: '理论', role: 'point', confirmable: true, source: '本题原文', ...patch })
@@ -103,7 +105,7 @@ describe('source-grounded rubrics', () => {
     }
   })
   it('does not treat publisher study instructions as automatically matched exam content', () => {
-    const item = content.items.find(i => i.checkPoints.some(p => /原资料提示/.test(p.sourceText)))!
+    const item = (legacy as ContentBundle).items.find(i => i.checkPoints.some(p => /原资料提示/.test(p.sourceText)))!
     const points = mrcRubric(item), p = points.find(p => p.role === 'reference')!
     expect(reviewAnswer(p.reference, [p]).rows[0].status).toBe('unavailable')
   })

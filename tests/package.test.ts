@@ -2,7 +2,9 @@ import { existsSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { content } from '../src/content'
+import legacy from '../src/data/generated/content.json'
+import type { ContentBundle } from '../src/types'
+const content = legacy as ContentBundle
 import baseline from '../scripts/content-baseline.json'
 
 const SOURCE_FILES = baseline.sourceFiles

@@ -1,4 +1,4 @@
-import raw from './data/generated/content.json'
+import raw from './data/generated/management-ultimate.json'
 import type { ContentBundle, StudyItem } from './types'
 
 export const content = raw as ContentBundle

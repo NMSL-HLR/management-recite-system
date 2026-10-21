@@ -1,7 +1,10 @@
+import legacyIndex from '../data/generated/management-legacy-index.json'
 import { content, getItem } from '../content'
 import { EvidenceBadge } from '../components/render'
 import { buildDashboard } from '../engine/stats'
 import { useApp } from '../state/store'
+
+const oldTitle = (id: string) => (legacyIndex as Record<string, { title: string }>)[id]?.title
 
 export function Archive() {
   const app = useApp()
@@ -9,7 +12,7 @@ export function Archive() {
   const byChapter = new Map<string, { independent: number; minor_omission: number; cue_dependent: number; relearned: number }>()
   for (const attempt of app.state.attempts) {
     const item = getItem(attempt.itemId)
-    const key = item?.chapter || '未知'
+    const key = item?.chapter || '旧版教材（不计入新版题目成绩）'
     const row = byChapter.get(key) || { independent: 0, minor_omission: 0, cue_dependent: 0, relearned: 0 }
     row[attempt.evidenceState] += 1
     byChapter.set(key, row)
@@ -17,6 +20,8 @@ export function Archive() {
   return (
     <div className="stack">
       <h1>学习档案</h1>
+      <p className="muted">包含新旧教材历史。旧 A/B 册成绩保留，不计入 ultimate 新题；未完成旧草稿与考试可在管理学详细设置的迁移待查查看。</p>
+      {app.state.notes.some(n => !getItem(n.itemId)) && <section className="card"><h2>旧版批注</h2>{app.state.notes.filter(n => !getItem(n.itemId)).map(n => <details key={n.itemId}><summary>{oldTitle(n.itemId) || n.itemId}</summary><pre>{n.text}</pre></details>)}</section>}
       <section className="card">
         <h2>按天的证据</h2><p className="muted">色条与计数依次为：独立提取 / 基本提取 / 提示依赖 / 重新学习；次数不代表掌握比例。</p>
         {dash.byDay.length === 0 ? <p className="muted">还没有记录。</p> : (
@@ -50,7 +55,7 @@ export function Archive() {
             return (
               <li key={attempt.id}>
                 <header>
-                  <strong>{item?.title || attempt.itemId}</strong>
+                  <strong>{item?.title || `旧版 · ${oldTitle(attempt.itemId) || attempt.itemId}`}</strong>
                   <EvidenceBadge state={attempt.evidenceState} />
                   <small>{new Date(attempt.finishedAt).toLocaleString()}</small>
                 </header>

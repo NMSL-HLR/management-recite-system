@@ -6,10 +6,10 @@ import { tmpdir } from 'node:os'
 /** Fault injection and real downloads against the delivered file:// application. */
 export async function checkAuditJourneys({ open, seed, click, text, stores, settle, scenarios, root }) {
   const pk = '346-fusion-platform-v1', mk = 'pku346-recall-v1'
-  const content = JSON.parse(readFileSync(join(root, 'src/data/generated/content.json'), 'utf8'))
+  const content = JSON.parse(readFileSync(join(root, 'src/data/generated/management-ultimate.json'), 'utf8'))
   const first = content.items.find(i => i.coreA)
   const other = content.items.find(i => i.coreA && i.id !== first.id)
-  const tableItem = content.items.find(i => i.appendixFullAnswer && i.tables.length)
+  const tableItem = content.items.find(i => i.coreA && i.checkPoints.some(p => p.role === 'sports'))
   assert.ok(tableItem)
   const { page, context } = await open()
   const base = await stores(page)
@@ -23,7 +23,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
 
   active.mrc.library = { ...active.mrc.library, source: other.source, itemId: other.id, chapterId: other.chapterId, pageAnchor: '', query: '' }
   await seed(page, active.platform, active.mrc)
-  await click(page, '资料库', '.side'); await click(page, '管理学 A/B 资料')
+  await click(page, '资料库', '.side'); await click(page, '管理学资料')
   await click(page, '练这道题')
   await settle(page, () => Boolean(document.querySelector('dialog[open]')))
   assert.ok((await page.$eval('dialog[open]', n => n.innerText)).includes(first.title))
@@ -44,6 +44,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   await click(page, '继续训练'); await click(page, '直接看完整原文')
   assert.deepEqual(await page.$$eval('.compare th', ns => ns.map(n => n.textContent.trim())), tableItem.tables.flatMap(t => t.headers.map(s => s.trim())))
   assert.ok((await text(page)).includes(`已核对 0 / ${tableItem.checkPoints.length} 项`))
+  assert.ok((await text(page)).includes(tableItem.sections[0].sourceText.replace(/\*\*/g, '')))
   assert.ok(!(await text(page)).includes('examReady'))
   assert.ok(!(await text(page)).includes('sportsExampleMissing'))
   const extraPoint = tableItem.checkPoints.find(p => p.level !== 1 || ['sports', 'expansion'].includes(p.role))
@@ -65,12 +66,12 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   const frozenClock = await page.$eval('[aria-label="本轮用时"]', n => n.textContent)
   await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1200)))
   assert.equal(await page.$eval('[aria-label="本轮用时"]', n => n.textContent), frozenClock)
-  scenarios.push('原文对照显示真实表头、核对数量与中文状态；默认信心明确，查看全文仍为重学并按原20分钟调度，完成后计时冻结')
+  scenarios.push('原文对照显示新版正文、核对数量与中文状态（新稿无表格）；默认信心明确，查看全文仍为重学并按原20分钟调度，完成后计时冻结')
 
   const libraryFixture = structuredClone(base)
   libraryFixture.mrc.library = { ...base.mrc.library, source: other.source, itemId: other.id, chapterId: other.chapterId, pageAnchor: '', query: '' }
   await seed(page, libraryFixture.platform, libraryFixture.mrc)
-  await click(page, '资料库', '.side'); await click(page, '管理学 A/B 资料')
+  await click(page, '资料库', '.side'); await click(page, '管理学资料')
   await click(page, '加书签')
   await page.type('textarea', '批注切换页面后仍应保留')
   await click(page, '返回本章目录')
@@ -78,10 +79,10 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   await click(page, other.title, '.bookmarks')
   assert.equal(await page.$eval('textarea', n => n.value), '批注切换页面后仍应保留')
   assert.ok((await page.title()).includes(other.title))
-  await click(page, 'B册')
+  await click(page, '附录')
   await page.type('[aria-label="搜索管理学原文"]', '管理')
   const scopeHits = await page.$$eval('.library > .stack > .card ul button', ns => ns.map(n => n.textContent))
-  assert.ok(scopeHits.length > 0 && scopeHits.every(t => t.startsWith('B 第 ')))
+  assert.ok(scopeHits.length > 0 && scopeHits.every(t => t.startsWith('附录 第 ')))
   await click(page, '全部')
   const hitCount = content.pages.filter(p => p.markdown.includes('管理')).length
   assert.ok(hitCount > 40)
@@ -92,7 +93,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   assert.equal((await stores(page)).mrc.notes.find(n => n.itemId === other.id).text, '批注切换页面后仍应保留')
   scenarios.push('书签可列出与返回，批注切页刷新保留，题目标题更新；搜索遵循册范围并可展开40条以后的结果')
 
-  await click(page, '资料库', '.side'); await click(page, '管理学 A/B 资料')
+  await click(page, '资料库', '.side'); await click(page, '管理学资料')
   await click(page, '专注阅读')
   const focusedWidth = await page.$eval('.side', n => n.getBoundingClientRect().width)
   assert.equal(Math.round(focusedWidth), 0)
@@ -117,7 +118,7 @@ export async function checkAuditJourneys({ open, seed, click, text, stores, sett
   await seed(page, examFixture.platform, examFixture.mrc)
   await click(page, '设置数据', '.side'); await click(page, '管理学闭卷考试')
   await click(page, '对照原文')
-  assert.ok((await page.$$eval('.compare th', ns => ns.length)) > 0)
+  assert.ok((await text(page)).includes(tableItem.sections[0].sourceText.replace(/\*\*/g, '')))
   await click(page, '完成本次考试'); await click(page, '继续考试')
   assert.equal((await stores(page)).mrc.exam.answers[tableItem.id].text, '必须保留的考试作答')
   const downloadPath = mkdtempSync(join(tmpdir(), '346-audit-downloads-'))

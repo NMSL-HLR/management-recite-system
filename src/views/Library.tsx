@@ -21,10 +21,10 @@ export function Library() {
       <aside>
         <div className="actions">
           {(['A', 'B', 'all'] as const).map((source) => (
-            <button key={source} type="button" className={lib.source === source ? 'btn primary' : 'btn'} onClick={() => app.setLibrary({ source, chapterId: '', itemId: '', pageAnchor: '' })}>{source === 'all' ? '全部' : `${source}册`}</button>
+            <button key={source} type="button" className={lib.source === source ? 'btn primary' : 'btn'} onClick={() => app.setLibrary({ source, chapterId: '', itemId: '', pageAnchor: '' })}>{source === 'all' ? '全部' : source === 'A' ? '正文' : '附录'}</button>
           ))}
         </div>
-        <input aria-label="搜索管理学原文" value={lib.query} placeholder="搜索当前册原文" onChange={(event) => { setShowAllHits(false); app.setLibrary({ query: event.target.value, itemId: '', pageAnchor: '' }) }} />
+        <input aria-label="搜索管理学原文" value={lib.query} placeholder="搜索正文或附录原文" onChange={(event) => { setShowAllHits(false); app.setLibrary({ query: event.target.value, itemId: '', pageAnchor: '' }) }} />
         <details className="bookmarks"><summary>我的书签（{app.state.bookmarks.length}）</summary>
           {!app.state.bookmarks.length && <p className="muted">在题目或原文页添加书签后，可从这里返回。</p>}
           <ul className="plain">{app.state.bookmarks.map(id => {
@@ -32,7 +32,7 @@ export function Library() {
             const markedPage = content.pages.find(row => row.anchor === id)
             return <li key={id}>{markedItem || markedPage ? <button className="linkish" type="button" onClick={() => app.setLibrary(markedItem
               ? { source: markedItem.source, chapterId: markedItem.chapterId, itemId: id, pageAnchor: '', query: '' }
-              : { source: markedPage!.source, chapterId: '', itemId: '', pageAnchor: id, query: '' })}>{markedItem?.title || `${markedPage!.source}册 PDF 第 ${markedPage!.page} 页`}</button>
+              : { source: markedPage!.source, chapterId: '', itemId: '', pageAnchor: id, query: '' })}>{markedItem?.title || (markedPage!.page === 0 ? '使用说明' : `${markedPage!.source === 'A' ? '正文' : '附录'} 第 ${markedPage!.page} 题`)}</button>
               : <span>原资料已不在当前版本中</span>}
               <button className="btn ghost" type="button" aria-label={`移除书签：${markedItem?.title || markedPage?.anchor || id}`} onClick={() => app.toggleBookmark(id)}>移除</button></li>
           })}</ul>
@@ -49,13 +49,13 @@ export function Library() {
       <div className="stack">
         {lib.query.trim() ? (
           <section className="card">
-            <h2>{lib.source === 'all' ? '全部资料' : `${lib.source}册`}搜索：{hits.length} 个原文页</h2>
+            <h2>{lib.source === 'all' ? '全部资料' : lib.source === 'A' ? '正文' : '附录'}搜索：{hits.length} 条原文</h2>
             {!hits.length && <p className="muted">当前范围没有匹配内容。可缩短关键词，或切换到“全部”搜索。</p>}
             {hits.length > 40 && <p className="muted">{showAllHits ? `显示全部 ${hits.length} 条` : `显示前 40 条，共 ${hits.length} 条`}</p>}
             <ul className="plain">
               {(showAllHits ? hits : hits.slice(0, 40)).map((hit) => (
                 <li key={hit.anchor + hit.title}>
-                  <button type="button" className="linkish" onClick={() => app.setLibrary({ pageAnchor: hit.anchor, chapterId: '', itemId: '' })}>{hit.source} 第 {hit.page} 页 · {hit.title}</button>
+                  <button type="button" className="linkish" onClick={() => { const found = getItem(hit.anchor); app.setLibrary(found ? { source: found.source, chapterId: found.chapterId, itemId: found.id, pageAnchor: '', query: '' } : { pageAnchor: hit.anchor, chapterId: '', itemId: '', query: '' }) }}>{hit.source === 'A' ? '正文' : '附录'} 第 {hit.page} 题 · {hit.title}</button>
                   <small dangerouslySetInnerHTML={{ __html: hit.snippet }} />
                 </li>
               ))}
@@ -84,7 +84,7 @@ function ChapterView({ chapterId }: { chapterId: string }) {
     <article className="stack">
       <header className="page-head">
         <div>
-          <p className="kicker">{chapter.source}册</p>
+          <p className="kicker">{chapter.source === 'A' ? '正文' : '附录'}</p>
           <h1>{chapter.title}</h1>
         </div>
         <div className="actions">
@@ -133,7 +133,7 @@ function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; not
     <article className="stack">
       <header className="page-head">
         <div>
-          <p className="kicker">{item.chapter} · PDF {item.pdfPages.join(', ') || '—'}</p>
+          <p className="kicker">{item.chapter} · 管理学 ultimate</p>
           <h1>{item.title}</h1>
           {item.fullTextForLookup ? <p className="badge">B级骨架 · 全文供查阅 · 不因篇幅提高优先级</p> : null}
           <Signals item={item} />
@@ -186,10 +186,10 @@ function PageView({ anchor, markdown, page, source }: { anchor: string; markdown
   return (
     <article className="card stack">
       <header className="page-head">
-        <h1>{source}册 PDF 第 {page} 页</h1>
+        <h1>{source === 'A' ? '正文' : '附录'} · {page === 0 ? '使用说明' : `第 ${page} 题`}</h1>
         <button className="btn" type="button" onClick={() => app.toggleBookmark(anchor)}>{app.state.bookmarks.includes(anchor) ? '已加书签' : '给这页加书签'}</button>
       </header>
-      <RichText text={markdown} query={app.state.library.query} />
+      <RichText text={markdown.replace(/^(#{1,6}) /gm, '').replace(/(\d+)\\\.[ \t]*\n?/g, '$1. ')} query={app.state.library.query} />
       <button className="btn ghost" type="button" onClick={() => app.setLibrary({ pageAnchor: '' })}>返回目录</button>
     </article>
   )
@@ -199,10 +199,10 @@ function Conflict() {
   return (
     <aside className="card warnbox">
       <h2>资料说明 / 版本差异</h2>
-      <p>A册封面：{content.versionConflict.aStatement}</p>
-      <p>B册目录页：{content.versionConflict.bStatement}</p>
+      <p>正文：{content.versionConflict.aStatement}</p>
+      <p>附录：{content.versionConflict.bStatement}</p>
       <p>{content.versionConflict.resolution}</p>
-      <p className="muted">三色：朱红是名解，墨黑是简答，青绿是扩展。B册表格里的朱红强调不是名解层。</p>
+      <p className="muted">正文按原稿小标题与段落核对；附录仅供查询，不自动派题。旧记录可在设置中的管理学学习档案查看。</p>
     </aside>
   )
 }

@@ -107,7 +107,7 @@ export function Settings() {
           <NumberField label="休息分钟" value={settings.day.restMinutes} onChange={(restMinutes) => app.updateSettings({ day: { ...settings.day, restMinutes } })} />
         </div>
         <label className="check"><input type="checkbox" checked={settings.day.protectEvening} onChange={(event) => app.updateSettings({ day: { ...settings.day, protectEvening: event.target.checked } })} />保留晚间闭卷</label>
-        <label className="check"><input type="checkbox" checked={settings.day.prioritizeA26} onChange={(event) => app.updateSettings({ day: { ...settings.day, prioritizeA26: event.target.checked } })} />优先排 A 册 26 题</label>
+        <label className="check"><input type="checkbox" checked={settings.day.prioritizeA26} onChange={(event) => app.updateSettings({ day: { ...settings.day, prioritizeA26: event.target.checked } })} />优先排管理学正文题</label>
         </details>
         <label className="check"><input type="checkbox" checked={settings.showTimer} onChange={(event) => app.updateSettings({ showTimer: event.target.checked })} />显示计时</label>
       </section>
@@ -122,7 +122,7 @@ export function Settings() {
         </div>
       </section>
       <section className="card">
-<h2>A/B 关系审核</h2><label className="check"><input type="checkbox" checked={allRelations} onChange={e => setAllRelations(e.target.checked)} />显示全部关系（默认只看待审核候选）</label>
+<h2>A/B 关系审核</h2>{!content.relations.length && <p>新稿未提供已确认的 A/B 关系，此提示层自动跳过。旧审核记录保留在备份中，不套用到新题。</p>}<label className="check"><input type="checkbox" checked={allRelations} onChange={e => setAllRelations(e.target.checked)} />显示全部关系（默认只看待审核候选）</label>
         <p className="muted">候选不会进入提示链。确认只存在这份学习记录里，不改原文。</p>
         <ul className="review">
           {content.relations.filter(rel => allRelations || (app.state.relationOverrides[rel.id] || rel.status) === 'candidate').map((rel) => {

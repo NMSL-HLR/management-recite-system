@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { content } from '../src/content'
+import legacy from '../src/data/generated/content.json'
+import type { ContentBundle } from '../src/types'
+const content = legacy as ContentBundle
 import { deriveEvidence } from '../src/engine/evidence'
 import { buildHintContext, commitAttempt, goCompare, requestHint, revealFull, startRecall, submitDraft, toRestate } from '../src/engine/recall'
 import { DEFAULT_GAPS } from '../src/engine/schedule'

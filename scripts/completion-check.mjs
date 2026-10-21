@@ -31,10 +31,11 @@ export async function checkCompletion({ open, seed, click, text, stores, settle,
   await click(page, '设置数据', '.side'); await click(page, '管理学详细设置')
   assert.equal(await page.$('input[type="file"]'), null)
   assert.ok((await text(page)).includes('原版日程参数（当前全科教练不使用）'))
-  assert.equal(await page.$$eval('.review', lists => lists[0].querySelectorAll('li').length), 25)
+  assert.equal(await page.$$eval('.review', lists => lists[0].querySelectorAll('li').length), 0)
+  assert.ok((await text(page)).includes('新稿未提供已确认的 A/B 关系'))
   await click(page, '前往全科设置')
   assert.ok(await page.$('.file-drop input[type="file"]'))
-  scenarios.push('详细设置不再重复导入入口，旧日程参数明确折叠；关系默认仅显示25条候选，全科设置保留真实文件输入与拖放区')
+  scenarios.push('详细设置不再重复导入入口，旧日程参数明确折叠；新稿无虚构关联、明确提示无已确认关系，全科设置保留真实文件输入与拖放区')
 
   const keyboardFixture = structuredClone(base)
   const keyboardTask = { id: 'keyboard-task', module: 'general', itemId: original.id, title: original.title, subject: original.subject, chapterKey: `${original.subject}::${original.quotaChapterOverride}`, isNew: true, reason: '键盘操作验证', estimatedMinutes: 10, status: 'in_progress', startedAt: Date.now() }
@@ -180,10 +181,10 @@ export async function checkCompletion({ open, seed, click, text, stores, settle,
     }, pk)
     assert.equal((await stores(p)).platform.session.draft, '第19次键入测试')
     // Search the actual MRC corpus via the UI; timing includes rendering and persistence.
-    await click(p, '资料库', '.side'); await click(p, '管理学 A/B 资料')
+    await click(p, '资料库', '.side'); await click(p, (await text(p)).includes('管理学 A/B 资料') ? '管理学 A/B 资料' : '管理学资料')
     const searchStart = Date.now()
     await p.type('[aria-label="搜索管理学原文"]', '管理')
-    await settle(p, () => document.body.innerText.includes('原文页'))
+    await settle(p, () => /原文页|条原文/.test(document.body.innerText))
     perf.results[name] = { startupMs, searchMs: Date.now() - searchStart, ...sample }
     await cx.close()
   }

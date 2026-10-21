@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "parse": "node scripts/parse-content.mjs && node scripts/parse-physiology.mjs && node scripts/parse-policy.mjs",
+    "parse": "node scripts/parse-content.mjs && node scripts/parse-physiology.mjs && node scripts/parse-policy.mjs && node scripts/parse-management.mjs",
     "pretest": "npm run parse",
     "test": "vitest run",
     "dev": "vite",

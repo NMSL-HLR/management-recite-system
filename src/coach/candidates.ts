@@ -49,7 +49,7 @@ export function buildCandidates(input: CoachInput, now: number): CoachCandidate[
       dueAt: row.dueAt,
       tier: row.tier,
       reason: attempt ? dueReason(attempt) : row.item.coreA
-        ? '这道 A 册核心题还没有训练记录，先闭卷写出你能想起的骨架。'
+        ? '这道正文核心题还没有训练记录，先闭卷写出你能想起的骨架。'
         : `${row.reasons[0]}。先无提示提取，再按需恢复。`,
       estimatedMinutes: estimatedMinutes(row.item),
     }

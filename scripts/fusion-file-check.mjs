@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import puppeteer from 'puppeteer-core'
 import { createServer } from 'node:http'
+import { checkManagement } from './management-check.mjs'
 import { checkJourneys } from './ux-file-check.mjs'
 import { checkPdca } from './pdca-check.mjs'
 import { checkSelection } from './selection-check.mjs'
@@ -29,7 +30,7 @@ const executablePath = process.env.CHROME_PATH || [...windowsBrowsers, '/usr/bin
 if (!executablePath) throw new Error('Set CHROME_PATH to a browser that supports file://.')
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files'] })
 const PK = '346-fusion-platform-v1', MK = 'pku346-recall-v1'
-const content = JSON.parse(readFileSync(join(root, 'src/data/generated/content.json'), 'utf8'))
+const content = JSON.parse(readFileSync(join(root, 'src/data/generated/management-ultimate.json'), 'utf8'))
 const first = content.items.find(i => i.coreA)
 const scenarios = [], errors = [], external = []
 
@@ -258,7 +259,7 @@ try {
     await click(mobile, label, '.mobile-nav')
     assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `320px overflow: ${label}`)
   }
-  await click(mobile, '资料库', '.mobile-nav'); await click(mobile, '管理学 A/B 资料')
+  await click(mobile, '资料库', '.mobile-nav'); await click(mobile, '管理学资料')
   assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '320px MRC library overflow')
   scenarios.push('320px 手机四个主页面与管理学资料库无横向溢出，底部导航可用')
 
@@ -464,6 +465,7 @@ try {
   assert.deepEqual((await stores(policyPage)).platform.general,upgradedPolicy.platform.general)
   scenarios.push('旧五讲自动替换为六讲，活动草稿延后换正文；成绩、到期时间、批注和旧原文留档，重复刷新不复制题目或档案')
 
+  await checkManagement({ open, seed, click, text, stores, settle, scenarios, root, completeMrc })
   await checkJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   await checkAuditJourneys({ open, seed, click, text, stores, settle, scenarios, root })
   }

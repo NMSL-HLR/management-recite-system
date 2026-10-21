@@ -1,0 +1,11 @@
+{
+  "htmlSha256": "aff8934352f5f8dff50c96b5510c169ba3d4efb69b328758af0231164e2f29ab",
+  "htmlBytes": 1722961,
+  "sourceSha256": "c59ec9aa6cc98374b150430bc6a75432ac0492ee6ead67b062f85491e4d45057",
+  "sourceZipIndependentlyBuilt": true,
+  "rebuildHtmlByteIdentical": true,
+  "unitTests": 184,
+  "browserScenarios": 73,
+  "transport": "http",
+  "harmonyOsDeviceTested": false
+}

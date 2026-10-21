@@ -91,7 +91,7 @@ export async function checkJourneys({ open, seed, click, text, stores, settle, s
   assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'UX草稿保留测试')
   scenarios.push('搜索无结果可清除筛选；录入草稿跨页面保留，切换查询科目不误存，详情打开和收起正确交接焦点')
 
-  await click(page, '管理学 A/B 资料')
+  await click(page, '管理学资料')
   assert.ok((await text(page)).includes('返回全科资料库'))
   await click(page, '返回全科资料库')
   await click(page, '学习记录', '.side'); await click(page, '查看管理学记录')
@@ -144,7 +144,7 @@ export async function checkJourneys({ open, seed, click, text, stores, settle, s
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `320px overflow: ${label}`)
     await click(page, '设置数据', '.mobile-nav')
   }
-  await click(page, '资料库', '.mobile-nav'); await click(page, '管理学 A/B 资料')
+  await click(page, '资料库', '.mobile-nav'); await click(page, '管理学资料')
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '320px overflow: MRC library')
   await click(page, '学习记录', '.mobile-nav')
   for (const label of ['查看管理学记录', '查看管理学错漏']) {

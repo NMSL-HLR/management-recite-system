@@ -15,10 +15,10 @@ export function Methodology() {
       </section>
 
       <section className="card">
-        <h2>A 册与 B 册分工</h2>
+        <h2>当前管理学资料</h2>
         <ul className="schedule">
-          <li><strong>A 册</strong> = 考场输出层（完整答案、默写标准）</li>
-          <li><strong>B 册</strong> = 提示层 / 知识网络层 / 覆盖层（骨架、关联、红线）</li>
+          <li><strong>正文56题</strong>：50道简述题与6道论述题，参与主动提取训练。</li>
+          <li><strong>附录22组</strong>：名词解释与低频补漏，仅供资料库查询。</li>
         </ul>
       </section>
 
@@ -26,9 +26,9 @@ export function Methodology() {
         <h2>单题流程</h2>
         <ol className="schedule">
           <li>无提示首测（闭卷草稿）</li>
-          <li>已确认 B 骨架</li>
+          <li>已确认骨架（新稿未提供对应关系，此层自动跳过）</li>
           <li>源文小标题</li>
-          <li>已审核关键词</li>
+          <li>已审核关键词（没有确认内容时自动跳过）</li>
           <li>完整原文对照</li>
           <li>撤提示复述</li>
         </ol>
@@ -47,7 +47,7 @@ export function Methodology() {
 
       <section className="card">
         <h2>优先级（排程与到期）</h2>
-        <p>A 级 &gt; 真题命中 B &gt; 老师高频 B &gt; 当前失败题 &gt; 普通 B</p>
+        <p>先恢复未完成训练，再安排到期复测与未训练正文题；受今日科目、章节和时间预算约束。</p>
       </section>
 
       <section className="card">
@@ -88,10 +88,10 @@ export function Methodology() {
         <p className="muted">以下为参考时间框架，不是程序自动排程；「今日训练」仍按引擎与设置生成计划。</p>
         <ul className="schedule method-dayplan">
           <li><strong>08:00–08:40</strong> 基线诊断</li>
-          <li><strong>08:40–11:30</strong> A 册前半核心题</li>
+          <li><strong>08:40–11:30</strong> 正文前半题目</li>
           <li><strong>11:30–12:30</strong> 上午失败项回测</li>
-          <li><strong>13:30–16:30</strong> A 册后半 + 附录</li>
-          <li><strong>16:30–18:00</strong> 高价值 B 级补齐</li>
+          <li><strong>13:30–16:30</strong> 正文后半题目</li>
+          <li><strong>16:30–18:00</strong> 按需查询附录</li>
           <li><strong>19:00–20:00</strong> 延迟复测</li>
           <li><strong>20:00–21:30</strong> 随机闭卷</li>
           <li><strong>21:30–22:00</strong> 错题修复</li>

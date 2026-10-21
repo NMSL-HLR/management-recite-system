@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { content } from '../src/content'
+import legacy from '../src/data/generated/content.json'
+import type { ContentBundle } from '../src/types'
+const content = legacy as ContentBundle
 
 const textOf = (idPart: string) => content.items.filter((item) => item.title.includes(idPart) || item.originalMarkdown.includes(idPart) || item.sections.some((s) => s.sourceText.includes(idPart)))
 

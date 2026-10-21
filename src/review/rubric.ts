@@ -6,7 +6,7 @@ import { canonical, plain } from './text'
 export function mrcRubric(item: StudyItem): ReviewPoint[] {
   return item.checkPoints.map(p => ({ id: p.id, label: p.label, reference: p.sourceText,
     group: p.group, role: /原资料提示|教材思考题|来源说明/.test(p.sourceText) ? 'reference' : p.role,
-    confirmable: true, source: `${item.source}册 · ${item.chapter} · PDF ${item.pdfPages.join('、')}页` }))
+    confirmable: true, source: `${item.chapter}${item.pdfPages.length ? ` · PDF ${item.pdfPages.join('、')}页` : ' · 管理学 ultimate 原稿'}` }))
 }
 
 function headingKind(line: string): { kind: string; level: number } | null {

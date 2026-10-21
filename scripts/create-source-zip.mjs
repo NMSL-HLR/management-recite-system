@@ -29,7 +29,7 @@ const html = readFileSync(join(root, '346_Fusion_Alpha.html'))
 const ready = {
   '346_Fusion_Alpha.html': new Uint8Array(html),
   '使用说明.md': new Uint8Array(readFileSync(join(root, 'docs/usage.md'))),
-  '发布验收.md': new Uint8Array(readFileSync(join(root, 'reports/policy-six-release.md'))),
+  '发布验收.md': new Uint8Array(readFileSync(join(root, 'reports/management-ultimate-release.md'))),
   'SHA256.txt': new TextEncoder().encode(`${createHash('sha256').update(html).digest('hex')}  346_Fusion_Alpha.html\n`),
 }
 const readyZip = zipSync(ready, { level: 6 }), roundtrip = unzipSync(readyZip)

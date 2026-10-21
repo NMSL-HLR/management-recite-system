@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import legacy from '../src/data/generated/content.json'
+import type { ContentBundle } from '../src/types'
 import { content } from '../src/content'
 import { buildCandidates } from '../src/coach/candidates'
 import { decideNext } from '../src/coach/decision'
@@ -52,15 +54,16 @@ describe('Alpha Lite Coach', () => {
   })
 
   it('filters references, confirmed prompt-only B and not-yet-due repeated questions', () => {
-    const relation = content.relations.find((row) => (row.role === 'skeleton' || row.role === 'topic') &&
-      !content.items.find((item) => item.id === row.bItemId)?.fullTextForLookup)!
-    const state = { ...newState(), attempts: [recorded(core[0], now - 1000, now + 60_000)], relationOverrides: { [relation.id]: 'confirmed' as const } }
-    const input = coachInput(state)
+    const old = legacy as ContentBundle
+    const relation = old.relations.find((row) => (row.role === 'skeleton' || row.role === 'topic') &&
+      !old.items.find((item) => item.id === row.bItemId)?.fullTextForLookup)!
+    const state = { ...newState(), attempts: [recorded(old.items.find(i => i.coreA)!, now - 1000, now + 60_000)], relationOverrides: { [relation.id]: 'confirmed' as const } }
+    const input = { ...coachInput(state), items: old.items, relations: old.relations }
     const candidates = buildCandidates(input, now)
-    expect(candidates.some((row) => row.item.id === core[0].id)).toBe(false)
+    expect(candidates.some((row) => row.item.id === old.items.find(i => i.coreA)!.id)).toBe(false)
     expect(candidates.some((row) => row.item.kind === 'reference')).toBe(false)
     expect(candidates.some((row) => isPromptOnlyConfirmedBItem(row.item, input.relations, input.relationOverrides))).toBe(false)
-    expect(content.items.some((item) => isPromptOnlyConfirmedBItem(item, input.relations, input.relationOverrides))).toBe(true)
+    expect(old.items.some((item) => isPromptOnlyConfirmedBItem(item, input.relations, input.relationOverrides))).toBe(true)
     expect(candidates.some((row) => row.item.fullTextForLookup)).toBe(true)
   })
 

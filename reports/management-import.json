@@ -1,0 +1,940 @@
+{
+  "source": "sources/管理学_ultimate.md",
+  "sourceHash": "c59ec9aa6cc98374b150430bc6a75432ac0492ee6ead67b062f85491e4d45057",
+  "contentVersion": "2026-10-21-management-ultimate-v1",
+  "main": 56,
+  "reference": 22,
+  "items": [
+    {
+      "id": "mgt-ultimate-202610-q01",
+      "title": "01　简述管理的内涵、基本职能及本质。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c1",
+      "sections": 9,
+      "checkpoints": 13,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q01-sport2-0",
+          "sourceText": "1. 管理既是**对人及其行为的管理**，也是对不同成员行为与贡献的**协调**。运动队只有使教练、运动员及保障人员相互配合，才能把个体努力转化为整体成绩。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q02",
+      "title": "02　简述管理活动的基本原理，并结合体育实践说明其运用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c1",
+      "sections": 9,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q02-sport2-1",
+          "sourceText": "2. 管理应坚持**整体、层次和开放观点**。既统筹局部与全局，又使各层管理者各负其责，并根据外部环境调整活动。办赛时应把竞赛、场地、人员、经费和安全共同安排，避免单个部门最优而整体失衡。"
+        },
+        {
+          "id": "mgt-ultimate-202610-q02-sport3-1",
+          "sourceText": "2. **做正确的事是前提，用正确的方法做事是保证。**场馆既要满足群众需求，也要控制维护和运营成本，避免设施闲置与资源浪费。"
+        },
+        {
+          "id": "mgt-ultimate-202610-q02-sport4-1",
+          "sourceText": "2. 例如，教练应保留重要训练决策的统一性，同时给予运动员必要的自主空间；场馆应协调公益开放与经营收入，而非只追求其中一方。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q03",
+      "title": "03　简述决策的主要类型，并比较程序化决策与非程序化决策。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 8,
+      "checkpoints": 13,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q03-sport2-3",
+          "sourceText": "4. **体育情境不同。**按既定规则安排日常场地属于程序化决策；核心队员突发伤病后重新选择参赛方案属于非程序化决策。非程序化不是不按程序办事。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q04",
+      "title": "04　简述决策过程的六个步骤及其主要影响因素。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 11,
+      "checkpoints": 15,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q05",
+      "title": "05　简述有限理性与满意原则，并说明其与最优原则的区别。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q05-sport3-1",
+          "sourceText": "2. 教练临场换人时，比赛信息和思考时间都有限，应选择能够解决当前问题的合理方案，而不是等待无法获得的完整信息。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q06",
+      "title": "06　简述组织环境的三个层次及PEST分析的作用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 9,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q06-sport4-1",
+          "sourceText": "2. 筹办赛事时，可用PEST分析规则条件、消费能力、居民兴趣和技术条件，再结合场馆、人员及经费等内部资源判断可行性。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q07",
+      "title": "07　简述波特五力模型、SWOT与情景分析，并说明其适用对象。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q07-sport3-1",
+          "sourceText": "2. 赛事运营者可用五力分析同类赛事、替代娱乐、场馆供应和观众选择；用SWOT匹配赛事资源与市场机会；再对天气变化或参与不足制定不同预案。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q08",
+      "title": "08　简述计划的类型、作用及常用编制方法。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q08-sport3-2",
+          "sourceText": "3. 赛事筹备可先确定目标，估量差距、预测变化、制定方案，再实施检查与总结，使计划既有系统安排，也能动态调整。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q09",
+      "title": "09　简述目标管理的含义、特点、过程及评价。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 10,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q09-sport3-1",
+          "sourceText": "2. 运动队可由教练与运动员共同制定阶段目标，通过训练记录自查，赛季末综合评价。不能把目标管理简化为单纯下达成绩指标。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q10",
+      "title": "10　简述PDCA循环的内容、特点及体育管理中的应用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c2",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q10-sport3-0",
+          "sourceText": "1. 健身俱乐部发现会员满意度下降，先分析课程、器材和服务原因并制定方案，再实施改进、调查反馈，最后固定有效做法。下一轮针对仍未解决的问题继续调整。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q11",
+      "title": "11　简述组织设计的任务、影响因素和基本原则。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c3",
+      "sections": 12,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q11-sport3-0",
+          "sourceText": "1. 赛事组委会先按任务设置岗位，再设竞赛、场地和服务等部门，明确汇报与协作关系，避免同一事务无人负责或多人重复指挥。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q12",
+      "title": "12　简述五种基本组织结构的特点、优缺点及适用范围。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c3",
+      "sections": 21,
+      "checkpoints": 28,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q12-sport4-3",
+          "sourceText": "4. **适用：**规模较大、业务多样的组织，例如按赛事、场馆和培训业务划分的大型体育经营组织。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q13",
+      "title": "13　简述管理幅度与层级的关系及有效管理幅度的影响因素。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c3",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q13-sport3-0",
+          "sourceText": "1. 主教练能够直接管理多少名运动员，要同时考虑自身能力、队员自我管理水平及训练任务，不能只按固定人数安排。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q14",
+      "title": "14　简述集权与分权的关系、分权的影响因素及有效授权的要求。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c3",
+      "sections": 12,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q14-sport2-1",
+          "sourceText": "2. 主教练临时委托助理教练负责一阶段训练属于授权；制度赋予青训部门稳定的自主权属于分权。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q15",
+      "title": "15　简述组织整合的主要内容及实施要求。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c3",
+      "sections": 9,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q15-sport4-0",
+          "sourceText": "1. 运动队可吸纳队长参与沟通，发挥队员群体的凝聚作用；同时明确主教练与科研、体能、医务人员的分工，使专业意见进入决策，避免相互矛盾的指令。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q16",
+      "title": "16　简述人员选聘的主要来源、优缺点及选择依据。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c3",
+      "sections": 11,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q16-sport4-1",
+          "sourceText": "2. 运动员选拔中，先要求基本测试合格，再按专项成绩综合排序，可用来说明结合式录用。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q17",
+      "title": "17　简述组织文化的构成、特征及塑造过程。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c4",
+      "sections": 10,
+      "checkpoints": 14,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q18",
+      "title": "18　结合体育组织，简述组织文化的主要功能。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c4",
+      "sections": 8,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q18-sport1-0",
+          "sourceText": "1. 共同价值观逐渐内化为个人的判断标准，引导成员选择符合组织目标的行为。例如运动队明确共同竞赛目标，可使个人训练方向与全队任务一致。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q19",
+      "title": "19　简述领导与管理的关系及领导权力的来源。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 10,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q19-sport3-0",
+          "sourceText": "1. 教练安排训练任务体现职位权限，因专业能力得到运动员信服体现专家权力，因公平与表率受到追随体现参照权力。只依靠命令和惩罚，难以充分调动队员的主动性。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q20",
+      "title": "20　简述领导行为理论的主要研究及管理方格理论。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q20-sport3-0",
+          "sourceText": "1. 领导不能只看成绩而忽视成员，也不能只求关系融洽而忽视任务。运动队应把成绩目标与队员成长、沟通和合作结合起来。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q21",
+      "title": "21　简述情境领导模型及其在运动队管理中的应用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 7,
+      "checkpoints": 11,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q21-sport2-1",
+          "sourceText": "2. 对能力与责任感较强的成熟队员，可以适度授权。队员状态会变化，领导方式也应重新判断；“低关系”不等于不尊重或不关心队员。教练应随队员能力和意愿变化逐步调整指导与支持程度。例如成熟队员初次承担队长职责时，仍可能需要较多任务指导，不能因其技术熟练便完全放手。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q22",
+      "title": "22　简述费德勒权变模型的主要观点及管理启示。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q22-sport3-2",
+          "sourceText": "3. 运动队可以通过明确训练任务、改善教练与队员的信任、合理配置权限等调整情境，使教练的领导方式更好发挥作用。例如明确考核标准和职责分工，可以增强任务结构性。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q23",
+      "title": "23　简述四种人性假设，并说明超Y理论的主要观点。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 11,
+      "checkpoints": 16,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q23-sport3-0",
+          "sourceText": "1. 新队员、成熟主力和转型期队员的需要不同，教练应在指导、奖励、发展机会和参与程度上差异化安排。超Y并非把Y理论简单加强，而是强调情境匹配。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q24",
+      "title": "24　简述马斯洛需要层次理论及其管理启示。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 8,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q24-sport1-0",
+          "sourceText": "1. **生理需要**是维持生活的基本需要；**安全需要**是对稳定、保障和免受威胁的需要。对运动员而言，合理膳食、休息条件属于基本生活保障；稳定的训练安排、伤病防护与后续发展保障，可回应安全需要。"
+        },
+        {
+          "id": "mgt-ultimate-202610-q24-sport3-1",
+          "sourceText": "2. 运动员管理中，可把生活保障、队伍归属、成绩认可和发展机会相结合，而不是对所有队员只提供相同物质奖励。对基本条件已有保障的队员，技术进步和自主发展的机会可能更有吸引力。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q25",
+      "title": "25　简述双因素理论，并说明保健因素与激励因素的区别。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 8,
+      "checkpoints": 13,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q25-sport3-1",
+          "sourceText": "2. 管理应先保障基本条件，再通过丰富工作、给予责任和发展机会增强内在动力。运动队既要改善训练生活条件，也要让队员获得挑战、认可和成长。例如让有能力的队员参与训练方案讨论，并承担明确责任。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q26",
+      "title": "26　简述成就需要理论及其在人员激励中的运用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q26-sport3-1",
+          "sourceText": "2. 训练中可设置具有挑战而可实现的阶段目标，及时反馈技术和成绩变化，让运动员通过实际进步增强责任感与成就体验。对权力和亲和需要较强的队员，可分别提供适当带队机会与合作任务。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q27",
+      "title": "27　简述期望理论的主要内容及其在激励中的运用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 8,
+      "checkpoints": 13,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q27-sport3-0",
+          "sourceText": "1. 教练制定阶段成绩目标时，既要考虑运动员能力，也要说明评价与奖励规则，并了解队员重视的是成绩、荣誉还是发展机会。只有目标可达、回报可信且符合需要，激励才有基础。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q28",
+      "title": "28　简述公平理论及其对体育组织激励的启示。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 8,
+      "checkpoints": 13,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q28-sport3-1",
+          "sourceText": "2. 公平不等于平均。运动队的奖励应说明成绩、贡献和岗位责任，兼顾替补、主力及保障人员，避免只看到最终上场者而忽略其他贡献。同时应公开评价程序，使成员理解差异的依据并能提出异议。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q29",
+      "title": "29　简述目标设置理论及目标发挥激励作用的条件。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 9,
+      "checkpoints": 14,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q29-sport3-0",
+          "sourceText": "1. 教练可与队员明确阶段任务、难度和责任，持续反馈完成情况，必要时调整条件，使目标既能引导行动，也能增强积极性。同时兼顾过程和结果，避免只追求单一成绩指标而忽略训练质量。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q30",
+      "title": "30　简述强化理论的四种方式，并说明激励方法的合理运用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c5",
+      "sections": 10,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q30-sport3-0",
+          "sourceText": "1. 运动队对认真执行训练规范、主动配合的行为给予及时反馈，并把奖惩条件说明清楚；对纪律问题的处理要针对具体行为。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q31",
+      "title": "31　简述有效沟通的要求、主要障碍及克服方法。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c6",
+      "sections": 12,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q31-sport3-0",
+          "sourceText": "1. 教练布置任务后，应让运动员说明自己的理解，并听取执行困难；部门间出现问题时，让有关责任人直接交流，避免只靠层层转达。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q32",
+      "title": "32　简述组织管理中面对面沟通往往更有效的原因。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c6",
+      "sections": 9,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q32-sport4-0",
+          "sourceText": "1. 教练与队员讨论训练分歧时，可直接了解疲劳感受和任务理解，再共同调整方案，而不是仅靠转达指令。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q33",
+      "title": "33　简述组织冲突的管理目标、处理策略及高效沟通要求。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c6",
+      "sections": 11,
+      "checkpoints": 16,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q33-sport3-1",
+          "sourceText": "2. 运动队开展训练方案讨论时，应允许有依据的不同观点，又以共同任务约束争论，避免形成相互攻击和拒不配合。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q34",
+      "title": "34　简述前馈控制、现场控制和反馈控制的含义、优缺点及体育应用。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c7",
+      "sections": 11,
+      "checkpoints": 19,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q34-sport1-2",
+          "sourceText": "3. **局限：**依赖及时准确信息和对影响关系的判断，难以预见所有变化。赛事的赛前设施检查、人员培训和天气预案属于这一类。"
+        },
+        {
+          "id": "mgt-ultimate-202610-q34-sport2-2",
+          "sourceText": "3. **局限：**受管理者时间、精力和业务水平限制，对难计量工作较难实施；处理不当还可能引起对立情绪。赛时调度缺岗志愿者可作例证。"
+        },
+        {
+          "id": "mgt-ultimate-202610-q34-sport3-2",
+          "sourceText": "3. **局限：**采取措施前偏差或损失已经发生。赛后评估、赛季复盘和结果奖惩均可说明其应用。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q35",
+      "title": "35　简述控制的基本过程及科学控制标准的基本要求。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c7",
+      "sections": 17,
+      "checkpoints": 23,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q35-sport4-0",
+          "sourceText": "1. 赛事先制定进度与服务标准，赛时获取真实信息，出现延误后判断是原计划过紧、资源变化还是执行不力，再有针对性调整，最终将经验反馈到下一轮计划。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q36",
+      "title": "36　简述全面质量管理的内涵、基本要求及实施原则。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c7",
+      "sections": 14,
+      "checkpoints": 19,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q36-sport3-0",
+          "sourceText": "1. 赛事服务质量应从报名、场地、人员培训一直管到赛时服务和赛后评价。每个岗位明确标准，发现问题后按计划、实施、检查、处理循环改进，使经验转化为制度。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q37",
+      "title": "37　简述平衡计分卡的四个维度及其体育管理价值。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c7",
+      "sections": 9,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q37-sport3-0",
+          "sourceText": "1. 评价场馆时，可分别考察收支与资源效率、使用者满意度、预约维护等流程质量，以及人员培训和技术改进。"
+        },
+        {
+          "id": "mgt-ultimate-202610-q37-sport3-1",
+          "sourceText": "2. 公共体育场馆还应围绕公益服务目标设计指标，不能仅用盈利评价成败，也不能认为四个维度必须平均分配权重。应用时应先明确战略目标，再选择少量关键指标、确定责任并定期检查。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q38",
+      "title": "38　简述风险识别、评估及风险控制的主要策略。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c7",
+      "sections": 10,
+      "checkpoints": 16,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q38-sport4-0",
+          "sourceText": "1. 赛事应先排查人员、场地、财务和信息等风险，再评估其可能性和影响，综合选择调整活动、分担损失、准备备份及保留可承受风险等措施。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q39",
+      "title": "39　简述危机的特征及危机预警、反应与恢复的主要内容。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c7",
+      "sections": 11,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q39-sport4-0",
+          "sourceText": "1. 赛事管理既要赛前预警演练，也要赛时及时处置和信息沟通，事后还应检查场地、人员和组织运行条件，并将教训纳入下一次办赛准备。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q40",
+      "title": "40　简述维持与创新的关系，并说明如何实现有效管理。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c8",
+      "sections": 8,
+      "checkpoints": 13,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q40-sport3-1",
+          "sourceText": "2. 运动队应维持基本训练秩序和协作制度，同时根据训练反馈改进方法；经过检验有效的改进再固定下来，形成下一轮训练的基础。新方法可先小范围试行，评估效果后逐步推广，并及时修正不足。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q41",
+      "title": "41　简述管理创新的主要内容及科特创新领导的八个环节。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c8",
+      "sections": 11,
+      "checkpoints": 15,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q41-sport2-0",
+          "sourceText": "1. 场馆推行新服务流程时，应先说明改进需要，再组织相关部门共同确定目标，给予试行权限、评价阶段效果，最后将有效流程固定并持续完善。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q42",
+      "title": "42　简述组织变革的障碍、阶段、方式及管理要求。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c8",
+      "sections": 11,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q42-sport4-1",
+          "sourceText": "2. 运动队更换训练管理方式时，应向队员说明原因、安排过渡和反馈，再巩固有效做法，避免突然更改却不给适应条件。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q43",
+      "title": "43　简述学习型组织的建设及组织知识的转化方式。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c8",
+      "sections": 11,
+      "checkpoints": 17,
+      "sportsCheckpoints": [
+        {
+          "id": "mgt-ultimate-202610-q43-sport4-0",
+          "sourceText": "1. 教练组可共同复盘训练，把经验整理为手册，再通过实践检验和修订，使有效经验不只保存在个人头脑中，也能够传递给新成员。"
+        }
+      ]
+    },
+    {
+      "id": "mgt-ultimate-202610-q44",
+      "title": "44　简述体育管理体制的三种类型、影响因素及改革分析思路。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c9",
+      "sections": 10,
+      "checkpoints": 15,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q45",
+      "title": "45　简述社会体育管理的特点及社区体育管理的注意事项。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c9",
+      "sections": 15,
+      "checkpoints": 19,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q46",
+      "title": "46　简述学校体育管理的特点、主要内容与保障要求。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c9",
+      "sections": 11,
+      "checkpoints": 15,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q47",
+      "title": "47　简述运动训练管理的特点、内容及后备人才培养要求。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c9",
+      "sections": 10,
+      "checkpoints": 14,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q48",
+      "title": "48　简述体育产业管理的内容、特征及体育产业开发的意义。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c9",
+      "sections": 14,
+      "checkpoints": 19,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q49",
+      "title": "49　简述体育赛事管理的全过程、主要内容和风险控制。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c9",
+      "sections": 12,
+      "checkpoints": 16,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q50",
+      "title": "50　简述体育场馆经营原则及风险防范与干预策略。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c9",
+      "sections": 13,
+      "checkpoints": 18,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q51",
+      "title": "51　论述高校高水平运动队管理中可能存在的问题及针对性举措。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c10",
+      "sections": 12,
+      "checkpoints": 16,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q52",
+      "title": "52　结合健身休闲管理的特点，论述如何提高其管理水平。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c10",
+      "sections": 12,
+      "checkpoints": 16,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q53",
+      "title": "53　论述如何推进体育智造的创新驱动与高质量发展。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c10",
+      "sections": 11,
+      "checkpoints": 15,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q54",
+      "title": "54　论述现代科技对体育现代化的引擎作用及其发挥条件。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c10",
+      "sections": 12,
+      "checkpoints": 19,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q55",
+      "title": "55　论述竞技体育实现高质量、可持续发展的管理路径。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c10",
+      "sections": 11,
+      "checkpoints": 15,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-q56",
+      "title": "56　论述群众体育赛事如何构建多元协同治理模式，实现可持续发展。",
+      "kind": "full_answer",
+      "chapterId": "ultimate-c10",
+      "sections": 10,
+      "checkpoints": 14,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a01",
+      "title": "A01　组织与企业",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a02",
+      "title": "A02　泰勒科学管理与例外管理",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a03",
+      "title": "A03　法约尔一般管理理论",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a04",
+      "title": "A04　韦伯、梅奥与巴纳德",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 3,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a05",
+      "title": "A05　早期管理思想与管理理论丛林",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 3,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a06",
+      "title": "A06　基本管理方法与工具",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a07",
+      "title": "A07　头脑风暴法、德尔菲法与5W2H",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a08",
+      "title": "A08　不确定情境下的四种准则",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a09",
+      "title": "A09　人员配备、考评与培训",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 3,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a10",
+      "title": "A10　豪斯路径—目标理论",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a11",
+      "title": "A11　交易型、变革型与领导成员交换",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a12",
+      "title": "A12　沟通类型与网络",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a13",
+      "title": "A13　层级控制、市场控制与团体控制",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a14",
+      "title": "A14　预算、零基预算与控制原则",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a15",
+      "title": "A15　创新分类与七种来源",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a16",
+      "title": "A16　组织创新与组织学习中断",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a17",
+      "title": "A17　体育管理原理与四种方法",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a18",
+      "title": "A18　农村体育与运动队管理模式",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a19",
+      "title": "A19　体育市场、4P与健身俱乐部",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 3,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a20",
+      "title": "A20　职业体育俱乐部与联盟",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a21",
+      "title": "A21　场馆经营模式与无形资产开发",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    },
+    {
+      "id": "mgt-ultimate-202610-a22",
+      "title": "A22　举国体制与体育发展战略",
+      "kind": "reference",
+      "chapterId": "ultimate-appendix",
+      "sections": 2,
+      "checkpoints": 0,
+      "sportsCheckpoints": []
+    }
+  ]
+}

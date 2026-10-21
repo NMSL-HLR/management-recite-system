@@ -1,3 +1,4 @@
+import legacyIndex from '../data/generated/management-legacy-index.json'
 import { useState } from 'react'
 import { useApp } from '../state/store'
 import { useOptionalFusion } from '../fusion/store'
@@ -24,7 +25,7 @@ export function MigrationReview() {
       const attempt = app.state.attempts.find(a => a.id === row.attemptId)
       const recovery = row.recovery
       const recalled = recovery?.recall as { draft?: unknown; restatement?: unknown } | undefined
-      return <details key={`${row.attemptId}:${index}`}><summary>{row.itemId} · {row.note}</summary>
+      return <details key={`${row.attemptId}:${index}`}><summary>{(legacyIndex as Record<string, { title: string }>)[row.itemId]?.title || row.itemId} · {row.note}</summary>
         {attempt && <><p>历史证据：{EVIDENCE_LABEL[attempt.evidenceState]}</p><h3>闭卷作答</h3><pre>{attempt.preRevealDraft?.text || '（无草稿）'}</pre><h3>撤提示复述</h3><pre>{attempt.restatementText || '（无复述）'}</pre><p>{attempt.userNote}</p></>}
         {recalled && <><h3>原草稿</h3><pre>{typeof recalled.draft === 'string' ? recalled.draft : '（无草稿）'}</pre><h3>原复述</h3><pre>{typeof recalled.restatement === 'string' ? recalled.restatement : '（无复述）'}</pre></>}
         {Boolean(recovery?.exam) && <p>整场考试作答已保留，可导出原始内容查阅。</p>}
