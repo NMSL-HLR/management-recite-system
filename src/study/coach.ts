@@ -94,6 +94,20 @@ export function makeSession(state: FusionState, task: TrainingTask): ScopedSessi
   const picked = task.activity==='short' ? [...new Map([sorted[0],misses[0]??sorted[1],sports[0]??sorted[2]].filter(Boolean).map(p=>[p.id,p])).values()] : points
   return { taskId:task.id,itemId:task.itemId,module:task.module,activity:task.activity==='short'?'short':'full',scope:picked,allPointIds:points.map(p=>p.id),sourceFingerprint:sourceFingerprint(state,task.module,task.itemId),phase:'draft',draft:'',frozenDraft:null,hinted:false,outcomes:Object.fromEntries(picked.map(p=>[p.id,'untested'])),paper:false,structure:false,written:false,startedAt:task.startedAt }
 }
+/** Only delayed, unhinted successes extend spacing; partial success is never whole mastery. */
+export function shortGapDays(records: ScopedRecord[], current: ScopedSession, delayed: boolean): number {
+  if (!delayed) return 1
+  const good=(r:ScopedRecord)=>r.delayed&&!r.hinted&&r.scope.length>0&&r.scope.every(p=>r.outcomes[p.id]==='pass')
+  const streak: ScopedRecord[]=[]
+  for(const r of [...records].reverse()) { if(!good(r)) break; streak.unshift(r) }
+  const sampled=new Set([...streak.filter(r=>r.activity==='short').flatMap(r=>r.scope.filter(p=>p.role!=='heading').map(p=>p.id)),...current.scope.filter(p=>p.role!=='heading').map(p=>p.id)])
+  // A repeated narrow sample may reach 3 days, but cannot earn the 7/14-day coverage bonus.
+  const lastWhole=records.filter(r=>r.activity==='full').at(-1)
+  const denominator=lastWhole?lastWhole.scope.filter(p=>p.role!=='heading').length:current.allPointIds.length
+  const covered=sampled.size/Math.max(1,denominator)
+  const successes=streak.length+1
+  return successes>=4&&covered>=0.8?14:successes>=3&&covered>=0.5?7:successes>=2?3:2
+}
 export function saveScoped(state: FusionState, mrc: CoachPersisted, now: number): ScopedRecord | null {
   const s=state.study?.session
   if (!s || s.phase!=='compare' || state.study!.records.some(r=>r.id===s.taskId)) return null
@@ -102,7 +116,7 @@ export function saveScoped(state: FusionState, mrc: CoachPersisted, now: number)
   const allPass=s.scope.length>0&&s.scope.every(p=>s.outcomes[p.id]==='pass')
   const complete=s.activity==='full'&&s.scope.length===s.allPointIds.length&&allPass&&!s.hinted&&s.structure&&s.written&&delayed&&(Boolean(s.frozenDraft?.trim())||s.paper)
   const accumulated=pointEvidence([...matchingRecords(state,s.module,s.itemId),{...s} as ScopedRecord])
-  const nextAt=now+(allPass&&!s.hinted&&!Object.values(accumulated).includes('miss')?(complete?3*DAY:DAY):state.study!.config.retryMinutes*60000)
+  const nextAt=now+(allPass&&!s.hinted&&!Object.values(accumulated).includes('miss')?(complete?3*DAY:s.activity==='short'?shortGapDays(matchingRecords(state,s.module,s.itemId),s,delayed)*DAY:DAY):state.study!.config.retryMinutes*60000)
   return {...s,scope:s.scope.map(p=>({...p,reference:''})),id:s.taskId,phase:'done',finishedAt:now,delayed,complete,nextAt}
 }
 export function coverage(state: FusionState,mrc:CoachPersisted,_now:number) {

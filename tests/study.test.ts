@@ -4,7 +4,7 @@ import { defaultPersisted } from '../src/state/defaults'
 import { installBuiltInTextbooks } from '../src/general/textbook'
 import { defaultFusion, allCandidates, beginTask, finishTask, lockChapters, decide, remaining, rollDay, preparePractice, beginPractice } from '../src/fusion/planner'
 import { validatePlatform, makeEnvelope, inspectFusionImport } from '../src/fusion/transfer'
-import { defaultConfig, newStudy, netBudget, daysLeft, DAY, makeSession, saveScoped, coverage, matchingRecords, key, estimate, studyDate } from '../src/study/coach'
+import { defaultConfig, newStudy, netBudget, daysLeft, DAY, makeSession, saveScoped, shortGapDays, coverage, matchingRecords, key, estimate, studyDate } from '../src/study/coach'
 import { tickStudy, confirmTime, tickExam, confirmExamTime } from '../src/study/time'
 import type { FusionState } from '../src/fusion/types'
 const now=Date.parse('2026-10-29T10:00:00+08:00'),mrc=()=>defaultPersisted()
@@ -65,6 +65,26 @@ describe('evidence coach scope and compatibility',()=>{
   r.outcomes[heading.id]='miss';r.complete=false
   const session=makeSession(active,{...active.active!,id:'repair',activity:'short'})
   expect(session.scope.some(p=>p.id===heading.id)).toBe(true)
+ })
+
+ it('six delayed successful short tests after a full pass do not stay at24hours',()=>{
+  let s=finish(tested(platform(),'full'),now+1000);let at=now+3*DAY+2000
+  const gaps:number[]=[]
+  for(let n=0;n<6;n++){
+   s=rollDay(s,at);const task={...s.study!.records[0],...s.day.tasks[0],...s.active,id:`stable-${n}`,itemId:s.study!.records[0].itemId,module:'general' as const,subject:'运动生理学',title:'stable',chapterKey:'stable',isNew:false,reason:'test',estimatedMinutes:12,status:'in_progress' as const,activity:'short' as const,startedAt:at}
+   s={...s,active:task,day:{...s.day,tasks:[task]},study:{...s.study!,session:makeSession(s,task)}}
+   s=finish(s,at+1000);const r=s.study!.records.at(-1)!;gaps.push((r.nextAt-r.finishedAt)/DAY);expect(r.complete).toBe(false);if(n<2)expect(allCandidates(s,mrc(),r.finishedAt+DAY).some(c=>c.itemId===r.itemId)).toBe(false);at=r.nextAt+1000
+  }
+  expect(gaps.every(d=>d>=3)).toBe(true);expect(gaps.at(-1)).toBeGreaterThan(3)
+ })
+ it('same-day repair cannot earn delayed spacing',()=>{const s=finish(tested(platform()));expect(shortGapDays(s.study!.records,s.study!.session!,false)).toBe(1)})
+
+ it('repeated narrow samples cannot earn coverage bonuses, and hints reset the streak',()=>{
+  const s=finish(tested(platform(),'full'));const original=s.study!.records[0]
+  const narrow={...original,activity:'short' as const,scope:original.scope.slice(0,1),allPointIds:Array.from({length:20},(_,i)=>`p-${i}`)}
+  const rows=Array.from({length:6},(_,i)=>({...narrow,id:`n-${i}`,taskId:`n-${i}`}))
+  expect(shortGapDays(rows,narrow,true)).toBe(3)
+  rows[5].hinted=true;expect(shortGapDays(rows,narrow,true)).toBe(2)
  })
 
 })
