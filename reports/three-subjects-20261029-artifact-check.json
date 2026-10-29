@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "htmlSha256": "132a9fbd091b94c55f2275d869de5143d92c7498e17ca99931c6bc24f241ef38",
+  "htmlBytes": 1796394,
+  "sourceHashes": {
+    "运动生理学.md": "8f242e5d4b2e00b1c65fe61cd10fc93c71fa96fa22ddf8214a12b4f95fc876cd",
+    "体育管理学_最终版.md": "1d7c77fe5df66befd46adb92f97171ee61090d7ce587e17324da1c22cf52358f",
+    "体育概论_40题优先背诵专册.md": "efe6915d0262a6c06bbb309e5153edc78bc4b211409b6df78204e74f632685ab"
+  },
+  "retainedManagementItemIds": 78,
+  "unitTestsPassed": 186,
+  "browserScenariosPassed": 75,
+  "independentSourceZipBuildIdentical": true,
+  "zipHtmlIdentical": true,
+  "browserTransport": "http",
+  "harmonyOsDeviceTested": false
+}

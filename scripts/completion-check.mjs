@@ -145,6 +145,11 @@ export async function checkCompletion({ open, seed, click, text, stores, settle,
 
   // Comparable desktop samples: baseline and current artifact, same generated history, no user data.
   const fixture = structuredClone(base)
+  // Both editions must see the same synthetic dataset rather than auto-installing extra old books.
+  const oldPhys = JSON.parse(readFileSync(join(root, 'sources/editions/physiology-v1.json'), 'utf8'))
+  const oldPolicy = JSON.parse(readFileSync(join(root, 'sources/editions/policy-six.json'), 'utf8'))
+  fixture.platform.general.installedTextbooks = [...new Set([...(fixture.platform.general.installedTextbooks ?? []), oldPhys.packId, oldPolicy.packId])]
+  fixture.platform.general.policySourceRevision = oldPolicy.revision
   fixture.platform.general.points = Array.from({ length: 500 }, (_, i) => ({ ...original, id: `stress-${i}`, title: `第${i + 1}章 压力样本`, content: '测试正文与记忆原理。'.repeat(80), totalReviews: 10, state: 'review', dueDate: Date.now() - 1000 }))
   fixture.platform.general.logs = Array.from({ length: 5000 }, (_, i) => ({ id: `stress-log-${i}`, pointId: `stress-${i % 500}`, subject: original.subject, rating: 3, reviewedAt: Date.now() - (5000 - i) * 86400000 / 3, intervalBefore: 1, intervalAfter: 3, preRevealDraft: '闭卷输出样本'.repeat(10) }))
   const point = fixture.platform.general.points[0]
@@ -162,6 +167,8 @@ export async function checkCompletion({ open, seed, click, text, stores, settle,
     await p.goto(target, { waitUntil: 'domcontentloaded' }); await settle(p, () => document.body.innerText.includes('今日作战台'))
     const startupMs = Date.now() - start
     await seed(p, fixture.platform, fixture.mrc)
+    assert.equal((await stores(p)).platform.general.points.length, 500)
+    assert.equal((await stores(p)).platform.general.logs.length, 5000)
     await click(p, '继续训练')
     const sample = await p.evaluate(async pk => {
       const times = [], writes = [], stringifies = []

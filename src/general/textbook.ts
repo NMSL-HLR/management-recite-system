@@ -25,37 +25,22 @@ export function compareGeneralPoints(a: GeneralPoint, b: GeneralPoint): number {
 }
 
 export const policyPack = policy
-/** User-authorized replacement of this specific policy edition, preserving learning fields. */
-export function installBuiltInTextbooks(data: GeneralData, now: number, activeId?: string): GeneralData {
-  const previous = installPhysiology(data, now)
-  if (previous.policySourceRevision === policy.revision) return previous
-  const fresh = policy.points.map(p => ({ ...p, ...createPoint({ subject: p.subject, title: p.title, content: p.content, tags: [], checklist: p.checklist }, now), id: p.id }))
-  const incoming = new Map(fresh.map(p => [p.id, p]))
-  const fields = ['title', 'content', 'checklist', 'quotaChapterOverride', 'trainingBlocked', 'referenceReason', 'sourceOrder', 'sourceHash', 'sourceQuestionHash', 'sourceLine', 'sourceRevision', 'rawSourceContent'] as const
-  const archived: GeneralPoint[] = []
-  let pending = false
-  const points = previous.points.map(old => {
-    const next = incoming.get(old.id)
-    if (!next || old.sourcePackId !== policy.packId || old.subject !== '体育概论' || old.sourceRevision === policy.revision) return old
-    // The frozen answer must be compared with the same textbook until this attempt ends.
-    if (old.id === activeId) { pending = true; return old }
-    archived.push(old)
-    const updated: GeneralPoint = { ...old }
-    for (const field of fields) {
-      const value = (next as GeneralPoint)[field]
-      if (value === undefined) delete updated[field]
-      else updated[field] = value as never
-    }
-    const retiredLeaks = (old.leaks ?? []).filter(leak => !next.checklist.includes(leak.label))
-    if (retiredLeaks.length) {
-      updated.policyLegacyLeaks = [...(Array.isArray(old.policyLegacyLeaks) ? old.policyLegacyLeaks : []), ...retiredLeaks]
-      updated.leaks = (old.leaks ?? []).filter(leak => next.checklist.includes(leak.label))
-    }
-    return updated
-  })
-  const merged = mergeTextbook({ ...previous, points }, fresh, policy.packId)
-  return { ...merged,
-    ...(pending ? {} : { policySourceRevision: policy.revision }),
-    ...(archived.length ? { policyReplacementArchive: [...(Array.isArray(previous.policyReplacementArchive) ? previous.policyReplacementArchive : []), { revision: policy.revision, replacedAt: now, points: archived }] } : {}),
+/** Archive superseded built-ins without modifying their scheduling or answer fields.
+ * An active old session still resolves the same point and can finish against its old answer.
+ * Retired rows are excluded from every future candidate and manual-practice pool.
+ */
+export function installBuiltInTextbooks(data: GeneralData, now: number, _activeId?: string): GeneralData {
+  const retiredPacks = new Set(['physiology-final-v1', 'sports-policy-lectures-1-5-v1'])
+  const retired = data.points.filter(p => typeof p.sourcePackId === 'string' && retiredPacks.has(p.sourcePackId) && !p.retiredTextbook)
+  let next = data
+  if (retired.length) {
+    const ids = new Set(retired.map(p => p.id))
+    next = { ...data, points: data.points.map(p => ids.has(p.id) ? { ...p, retiredTextbook: '2026-10-29', trainingBlocked: true,
+      referenceReason: '旧教材档案：正文、成绩、笔记与到期时间保留，不再自动派题；在途训练仍按旧答案完成。' } : p),
+      textbookReplacementArchive: [...(Array.isArray(data.textbookReplacementArchive) ? data.textbookReplacementArchive : []), { revision: '2026-10-29', replacedAt: now, points: retired }] }
   }
+  next = installPhysiology(next, now)
+  if (Array.isArray(next.installedTextbooks) && next.installedTextbooks.includes(policy.packId)) return next
+  const fresh = policy.points.map(p => ({ ...p, ...createPoint({ subject: p.subject, title: p.title, content: p.content, tags: [], checklist: p.checklist }, now), id: p.id }))
+  return mergeTextbook(next, fresh, policy.packId)
 }

@@ -51,7 +51,7 @@ export function validateMrcSnapshot(value: unknown, current: CoachPersisted): Co
   const plan = inspectImport(JSON.stringify(value), current, content.meta, new Set(content.items.map(i => i.id)))
   if (!plan.ok) throw new Error(plan.error)
   if (!obj(value)) throw new Error('管理学记录不合法。')
-  if (plan.summary.crossSchema || (plan.summary.crossVersion && value.contentVersion !== '2026-10-11-v1')) throw new Error('这份备份的教材或数据结构版本不受支持，请单独导入管理学 JSON。')
+  if (plan.summary.crossSchema || (plan.summary.crossVersion && !['2026-10-11-v1', '2026-10-21-management-ultimate-v1'].includes(String(value.contentVersion)))) throw new Error('这份备份的教材或数据结构版本不受支持，请单独导入管理学 JSON。')
   for (const key of ['notes', 'bookmarks', 'customKeywords', 'migrationReview', 'recallQueue']) if (!Array.isArray(value[key])) throw new Error(`管理学备份缺少 ${key}。`)
   for (const key of ['relationOverrides', 'keywordOverrides', 'settings', 'library']) if (!obj(value[key])) throw new Error(`管理学备份缺少 ${key}。`)
   const parsed = value as unknown as CoachPersisted

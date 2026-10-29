@@ -2,7 +2,7 @@ import type { GeneralData, GeneralPoint } from '../fusion/types'
 import { mergeTextbook } from './textbook'
 
 // Only these source fields may change. All scheduling, notes, tags and evidence stay local.
-const CONTENT_FIELDS = ['title', 'content', 'checklist', 'quotaChapterOverride', 'trainingBlocked', 'referenceReason', 'sourceOrder', 'sourceHash'] as const
+const CONTENT_FIELDS = ['title', 'content', 'checklist', 'quotaChapterOverride', 'trainingBlocked', 'referenceReason', 'sourceOrder', 'sourceHash', 'paragraphChecklist', 'rawSourceContent', 'sourceQuestionHash', 'sourceRevision'] as const
 export interface TextbookChange { id: string; title: string; before: string; after: string; blocked: boolean }
 export function textbookChanges(data: GeneralData, points: GeneralPoint[], packId: string, activeId?: string): TextbookChange[] {
   const existing = new Map(data.points.map(p => [p.id, p]))

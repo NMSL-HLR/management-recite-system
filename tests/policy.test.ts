@@ -1,90 +1,92 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { policyPack, installBuiltInTextbooks } from '../src/general/textbook'
+import oldPolicy from '../sources/editions/policy-six.json'
+import oldPhysiology from '../sources/editions/physiology-v1.json'
+import { policyPack, physiologyPack, installBuiltInTextbooks } from '../src/general/textbook'
 import { emptyGeneral, reviewGeneral } from '../src/general/data'
-import { allCandidates, defaultFusion } from '../src/fusion/planner'
+import { allCandidates, defaultFusion, lockChapters, retireUnavailableMrc } from '../src/fusion/planner'
 import { defaultPersisted } from '../src/state/defaults'
 import { inspectFusionImport } from '../src/fusion/transfer'
-import { createPoint } from '../src/general/scheduler'
-const now = new Date(2026, 9, 19, 12).getTime()
-const sha = (s: string | Buffer) => createHash('sha256').update(s).digest('hex')
-function oldEdition() {
-  const text = readFileSync('sources/policy/政策热点班_第一至第五讲_一点一两句背诵版.md','utf8')
-  const headers = [...text.matchAll(/^(#{2,4}) (.+)$/gm)]
-  let chapter = ''
-  const points = headers.flatMap((h, i) => {
-    if (h[1] === '##' && /^第.+讲｜/.test(h[2])) chapter = h[2]
-    if (h[1] !== '####' && !(h[1] === '###' && h[2].startsWith('B｜'))) return []
-    const content = text.slice(h.index!+h[0].length,headers[i+1]?.index??text.length).trim()
-    return [{ ...createPoint({subject:'体育概论',title:h[2],content,tags:[],checklist:[]},now),
-      id:`policy-${sha(`${policyPack.packId}\n${chapter}\n${h[2]}`).slice(0,24)}`, sourcePackId:policyPack.packId, sourceHash:sha(text), trainingBlocked:h[1]==='###' }]
+import type { GeneralPoint } from '../src/fusion/types'
+import { generalRubric } from '../src/review/rubric'
+const now = new Date(2026,9,29,10).getTime()
+const oldData = () => ({...emptyGeneral(),points:[...oldPhysiology.points,...oldPolicy.points] as GeneralPoint[],installedTextbooks:[oldPhysiology.packId,oldPolicy.packId]})
+describe('three-subject textbook replacement', () => {
+  it('extracts all forty source questions in order, retaining full text and source citations', () => {
+    const raw=readFileSync(policyPack.sourceFile,'utf8')
+    expect(createHash('sha256').update(raw).digest('hex')).toBe(policyPack.sourceHash)
+    const headings=[...raw.matchAll(/^## (\d{3})　(.+)$/gm)]
+    expect(headings).toHaveLength(40);expect(policyPack.points).toHaveLength(40)
+    for (const [i,h] of headings.entries()) {
+      const p=policyPack.points[i]
+      expect(p.title).toBe(`${h[1]}　${h[2]}`);expect(p.sourceOrder).toBe(i+1)
+      expect(raw).toContain(p.rawSourceContent)
+      const tail=raw.slice(h.index!+h[0].length), end=tail.search(/^#{1,2} /m)
+      expect(p.content).toBe((end<0?tail:tail.slice(0,end)).trim())
+      expect(p.checklist.length).toBeGreaterThan(0)
+      expect(generalRubric(p).every(r => r.reference.trim().length > 0)).toBe(true)
+      expect(generalRubric(p).every(r=>!r.reference.includes('记忆提示：')&&!r.reference.includes('原总册第'))).toBe(true)
+    }
   })
-  return {...emptyGeneral(),points,installedTextbooks:[policyPack.packId]}
-}
-describe('six-lecture policy replacement', () => {
-  it('retains the exact uploaded source and every one of the 664 numbered blocks', () => {
-    const raw=readFileSync(policyPack.sourceFile), text=raw.toString().replace(/\r\n?/g,'\n')
-    expect(sha(raw)).toBe(policyPack.sourceHash)
-    const original=[...text.matchAll(/^> (\*\*\d+\..+)$/gm)].map(m=>m[1].replace(/\*\*/g,'').trim()).sort()
-    const extracted=[policyPack.preface,...policyPack.points.map(p=>p.content)].flatMap(t=>t.split('\n').filter(l=>/^\d+\. /.test(l))).sort()
-    expect(original).toHaveLength(664); expect(extracted).toEqual(original)
-    expect(policyPack.points).toHaveLength(26)
-    expect(policyPack.points.filter(p=>!p.trainingBlocked)).toHaveLength(18)
-    expect(new Set(policyPack.points.map(p=>p.id)).size).toBe(26)
-    for(const p of policyPack.points) expect(text).toContain(p.rawSourceContent)
+  it('installs 73 physiology and 40 overview questions once with no inherited grades', () => {
+    const data=installBuiltInTextbooks(emptyGeneral(),now)
+    expect(data.points).toHaveLength(113)
+    expect(installBuiltInTextbooks(data,now+100)).toBe(data)
+    const candidates=allCandidates({...defaultFusion(now),general:data},defaultPersisted(),now).filter(c=>c.module==='general')
+    expect(candidates).toHaveLength(113)
+    expect(candidates.filter(c=>c.subject==='体育概论')[0].itemId).toBe(policyPack.points[0].id)
+    expect(data.points.every(p=>p.totalReviews===0&&!p.trainingBlocked)).toBe(true)
   })
-  it('keeps all 20 existing IDs and assigns new ones only for new material', () => {
-    const old=oldEdition(); expect(old.points).toHaveLength(20)
-    for(const p of old.points) expect(policyPack.points.some(n=>n.id===p.id)).toBe(true)
-    expect(policyPack.points.filter(p=>p.quotaChapterOverride.startsWith('第六讲'))).toHaveLength(4)
+  it('archives old built-ins without overwriting dates, grades, notes, checklist, leaks or logs', () => {
+    let old=oldData();old=reviewGeneral(old,old.points[0].id,3,[],'old-review',now) as typeof old
+    old.points[0].privateNote='原笔记'; const before=structuredClone(old)
+    const next=installBuiltInTextbooks(old,now+100)
+    expect(old).toEqual(before);expect(next.logs).toEqual(before.logs)
+    for(const p of before.points) {
+      const updated=next.points.find(n=>n.id===p.id)!
+      const { trainingBlocked: _blocked, referenceReason: _reason, ...originalFields } = p
+      expect(updated).toMatchObject(originalFields)
+      expect(updated.trainingBlocked).toBe(true)
+      expect(updated.retiredTextbook).toBeTruthy()
+    }
+    expect((next.textbookReplacementArchive as {points:GeneralPoint[]}[])[0].points).toEqual(before.points)
+    const candidates=allCandidates({...defaultFusion(now),general:next},defaultPersisted(),now)
+    expect(candidates.some(c=>before.points.some(p=>p.id===c.itemId))).toBe(false)
+    expect(installBuiltInTextbooks(next,now+200)).toBe(next)
   })
-  it('installs once and only schedules the 18 homework questions', () => {
-    const general=installBuiltInTextbooks(emptyGeneral(),now)
-    expect(general.points).toHaveLength(86)
-    expect(installBuiltInTextbooks(general,now+100)).toBe(general)
-    const candidates=allCandidates({...defaultFusion(now),general},defaultPersisted(),now).filter(p=>p.subject==='体育概论')
-    expect(candidates).toHaveLength(18); expect(candidates[0].itemId).toBe(policyPack.points[0].id)
+  it('lets an active old answer finish against its unchanged old source, without training the replacement', () => {
+    const old=oldData(), point=old.points[0]
+    const next=installBuiltInTextbooks(old,now,point.id)
+    expect(next.points.find(p=>p.id===point.id)!.content).toBe(point.content)
+    const done=reviewGeneral(next,point.id,3,point.checklist!,'finished-old',now+1000)
+    expect(done.logs.at(-1)!.pointId).toBe(point.id)
+    expect(done.points.find(p=>p.id===point.id)!.totalReviews).toBe(1)
+    expect(done.points.filter(p=>p.sourcePackId===physiologyPack.packId).every(p=>p.totalReviews===0)).toBe(true)
+    expect(installBuiltInTextbooks(done,now+2000)).toBe(done)
   })
-  it('directly replaces the prior edition but preserves grades, due dates, notes, leaks and original source snapshots', () => {
-    let old=reviewGeneral(oldEdition(),policyPack.points[0].id,3,[],'old-review',now)
-    old.points[0]={...old.points[0], privateNote:'保留私人批注',leaks:[{label:'旧遗漏项',due:now-1000}]}
-    const before=structuredClone(old), updated=installBuiltInTextbooks(old,now+100)
-    const current=updated.points.find(p=>p.id===before.points[0].id)!
-    expect(current.content).toBe(policyPack.points[0].content)
-    for(const key of ['dueDate','lastReviewedAt','stability','difficulty','totalReviews','privateNote']) expect(current[key]).toEqual(before.points[0][key])
-    expect(current.policyLegacyLeaks).toEqual(before.points[0].leaks); expect(current.leaks).toEqual([])
-    expect(updated.logs).toEqual(before.logs); expect(old).toEqual(before)
-    expect((updated.policyReplacementArchive as any[])[0].points).toEqual(before.points)
-    expect(installBuiltInTextbooks(updated,now+200)).toBe(updated)
+  it('preserves independent material and later local edits; old imports cannot re-enable retired tasks', () => {
+    const original=oldData();original.points[0].sourcePackId='custom'
+    const installed=installBuiltInTextbooks(original,now)
+    expect(installed.points[0]).toBe(original.points[0])
+    const fresh=installed.points.find(p=>p.sourcePackId===policyPack.packId)!;fresh.content='我的本地修订'
+    expect(installBuiltInTextbooks(installed,now+100)).toBe(installed)
+    const reimported={...installed,points:installed.points.map(p=>p.id===oldPolicy.points[0].id?oldPolicy.points[0] as GeneralPoint:p)}
+    expect(installBuiltInTextbooks(reimported,now+200).points.find(p=>p.id===oldPolicy.points[0].id)!.trainingBlocked).toBe(true)
   })
-  it('defers only the active question until its draft has finished, without duplicate archival', () => {
-    const old=oldEdition(), id=old.points[0].id
-    const partial=installBuiltInTextbooks(old,now,id)
-    expect(partial.points.find(p=>p.id===id)!.content).toBe(old.points[0].content)
-    expect(partial.policySourceRevision).toBeUndefined()
-    const again=installBuiltInTextbooks(partial,now+100,id)
-    expect(again.policyReplacementArchive).toEqual(partial.policyReplacementArchive)
-    const done=installBuiltInTextbooks(again,now+200)
-    expect(done.points.find(p=>p.id===id)!.content).toBe(policyPack.points[0].content)
-    expect((done.policyReplacementArchive as any[]).flatMap(a=>a.points)).toHaveLength(20)
-    expect(done.policySourceRevision).toBe(policyPack.revision)
+  it('releases retired policy chapter and practice scopes without clearing completed budget', () => {
+    const state=defaultFusion(now);state.general=installBuiltInTextbooks(oldData(),now)
+    state.day.selectedChapters['体育概论']=[`体育概论::${oldPolicy.points[0].quotaChapterOverride}`]
+    state.day.practice={module:'general',kind:'item',title:'旧题',itemIds:[oldPolicy.points[0].id]}
+    const next=lockChapters(retireUnavailableMrc(state),defaultPersisted(),now)
+    expect(next.day.practice).toBeUndefined()
+    expect(next.day.selectedChapters['体育概论']).not.toEqual(state.day.selectedChapters['体育概论'])
+    expect(next.day.tasks).toEqual(state.day.tasks);expect(next.day.budgetMinutes).toBe(state.day.budgetMinutes)
   })
-  it('does not overwrite later personal edits or independent custom material', () => {
-    const updated=installBuiltInTextbooks(oldEdition(),now)
-    updated.points[0].content='更新后我的自定义内容'
-    expect(installBuiltInTextbooks(updated,now+100)).toBe(updated)
-    const unrelated=oldEdition(); unrelated.points[0].sourcePackId='custom'
-    expect(installBuiltInTextbooks(unrelated,now).points[0]).toEqual(unrelated.points[0])
-  })
-  it('repeated import preserves learning records, and new textbook includes reference blocks', () => {
-    const s=defaultFusion(now);s.general=installBuiltInTextbooks(emptyGeneral(),now)
-    const first=policyPack.points[0]
-    s.general=reviewGeneral(s.general,first.id,3,first.checklist,'policy-result',now)
-    const file=readFileSync('346_Sports_Policy_Import.json','utf8')
-    expect(inspectFusionImport(file,s,defaultPersisted()).platform).toEqual(s)
-    const fresh=inspectFusionImport(file,defaultFusion(now),defaultPersisted())
-    expect(fresh.platform.general.points).toHaveLength(26)
-    expect(fresh.platform.general.points.filter(p=>p.trainingBlocked)).toHaveLength(8)
+  it('roundtrips new standalone textbooks without resetting personal progress', () => {
+    const state=defaultFusion(now);state.general=installBuiltInTextbooks(emptyGeneral(),now)
+    const p=policyPack.points[0];state.general=reviewGeneral(state.general,p.id,3,p.checklist,'new-record',now)
+    const imported=inspectFusionImport(readFileSync('346_Sports_Policy_Import.json','utf8'),state,defaultPersisted())
+    expect(imported.platform).toEqual(state)
   })
 })

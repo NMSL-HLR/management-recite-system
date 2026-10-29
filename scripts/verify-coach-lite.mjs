@@ -23,9 +23,9 @@ console.log(JSON.stringify({ ok: true, protectedFiles: Object.keys(baseline.prot
 
 
 const active = JSON.parse(readFileSync(join(root, 'src/data/generated/management-ultimate.json'), 'utf8'))
-const source = readFileSync(join(root, 'sources/管理学_ultimate.md'), 'utf8')
+const source = readFileSync(join(root, 'sources/体育管理学_最终版.md'), 'utf8')
 assert.equal(active.meta.sourceHashes.A, hash(source))
-assert.equal(active.meta.sourceHashes.B, hash(source.slice(source.indexOf('# 附录'))))
+assert.equal(active.meta.sourceHashes.B, hash(source.slice(source.indexOf('## 附录'))))
 assert.equal(active.meta.schemaVersion, content.meta.schemaVersion)
 assert.equal(active.items.filter(i => i.coreA).length, 56)
 assert.equal(active.items.filter(i => i.kind === 'reference').length, 22)

@@ -79,6 +79,12 @@ export function allCandidates(state: FusionState, mrc: CoachPersisted, now: numb
 export function lockChapters(state: FusionState, mrc: CoachPersisted, now: number): FusionState {
   const rolled = rollDay(state, now)
   const selected = { ...rolled.day.selectedChapters }
+  // Replacement can remove an entire chapter. Preserve valid locked scopes, release only stale ones.
+  for (const subject of Object.keys(selected).filter(s => s !== MANAGEMENT)) {
+    const available = new Set(rolled.general.points.filter(p => p.subject === subject && !p.trainingBlocked).map(chapterKey))
+    const retiredKeys = new Set(rolled.general.points.filter(p => p.subject === subject && p.retiredTextbook).map(chapterKey))
+    if (selected[subject].some(key => retiredKeys.has(key) && !available.has(key))) delete selected[subject]
+  }
   const candidates = allCandidates(rolled, mrc, now).filter(c => c.isNew)
   for (const subject of new Set(candidates.map(c => c.subject))) {
     if (Object.hasOwn(selected, subject)) continue
@@ -98,7 +104,7 @@ export function retireUnavailableMrc(state: FusionState): FusionState {
   const staleChapters = selected?.some(key => !validChapterKeys.has(key))
   if (staleChapters) delete selectedChapters[MANAGEMENT]
   const { practice, ...restDay } = state.day
-  const stalePractice = practice?.module === 'mrc' && practice.itemIds.some(id => !content.items.some(i => i.id === id))
+  const stalePractice = practice && practice.itemIds.some(id => practice.module === 'mrc' ? !content.items.some(i => i.id === id) : state.general.points.some(p => p.id === id && p.retiredTextbook))
   if (!retired.length && !staleChapters && !stalePractice) return state
   return { ...state, active: state.active && retired.some(t => t.id === state.active!.id) ? null : state.active,
     day: { ...restDay, ...(!stalePractice && practice ? { practice } : {}), selectedChapters, tasks: state.day.tasks.filter(t => !retired.includes(t)) },

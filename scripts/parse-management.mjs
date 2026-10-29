@@ -3,17 +3,17 @@ import { createHash } from 'node:crypto'
 import assert from 'node:assert/strict'
 
 // A/B are compatibility slots: main questions / short appendix, not the old books.
-const raw = readFileSync('sources/管理学_ultimate.md', 'utf8')
+const raw = readFileSync('sources/体育管理学_最终版.md', 'utf8')
 const hash = text => createHash('sha256').update(text).digest('hex')
 const clean = text => text.replace(/(\d+)\\\.[ \t]*\n?/g, '$1. ').replace(/\\([*])/g, '$1').trim()
 const plain = text => clean(text).replace(/\*\*/g, '')
-const start = raw.indexOf('# 第一章')
-const appendixStart = raw.indexOf('# 附录')
+const start = raw.indexOf('## 第一章')
+const appendixStart = raw.indexOf('## 附录')
 assert.ok(start > 0 && appendixStart > start)
 const main = raw.slice(start, appendixStart)
 const appendix = raw.slice(appendixStart)
 const chapters = [], items = [], pages = []
-const guide = raw.slice(0, raw.indexOf('# 目')).trim()
+const guide = raw.slice(0, start).trim()
 chapters.push({ id: 'ultimate-guide', source: 'A', title: '使用说明', index: 0, isAppendix: false, isChapter: false, isGuide: true, intro: clean(guide), flow: [] })
 pages.push({ source: 'A', page: 0, anchor: 'ultimate-guide', markdown: guide })
 // Explicit source excerpts reviewed for sporting application where the author did
@@ -27,12 +27,19 @@ const sportsExcerpts = [
   '运动队应维持基本训练秩序', '运动队更换训练管理方式时',
 ]
 for (const quote of sportsExcerpts) assert.ok(raw.includes(quote), `Missing reviewed excerpt: ${quote}`)
-const chapterMatches = [...main.matchAll(/^# (.+)$/gm)]
+const chapterMatches = [...main.matchAll(/^## (.+)$/gm)]
+const previous = JSON.parse(readFileSync('sources/editions/management-2026-10-21.json', 'utf8'))
+const comparable = text => text.replace(/^#+ /gm, '').replace(/\\(?=[.*])/g, '').replace(/\*\*/g, '').replace(/\s+/g, '')
+const mappings = []
 function addItem(title, body, chapter, number, reference = false) {
-  const id = `mgt-ultimate-202610-${reference ? 'a' : 'q'}${String(number).padStart(2, '0')}`
+  const oldId = `mgt-ultimate-202610-${reference ? 'a' : 'q'}${String(number).padStart(2, '0')}`
+  const old = previous.items.find(i => i.id === oldId)
+  const unchanged = old && comparable(old.title) === comparable(title) && comparable(old.originalMarkdown) === comparable(body)
+  const id = unchanged ? oldId : `mgt-final-20261029-${reference ? 'a' : 'q'}${String(number).padStart(2,'0')}`
+  mappings.push({ before: oldId, after: id, unchanged: Boolean(unchanged), title })
   const originalMarkdown = body.trim()
   const sections = [], checkPoints = []
-  const parts = [...originalMarkdown.matchAll(/^### (.+)$/gm)]
+  const parts = [...originalMarkdown.matchAll(/^#### (.+)$/gm)]
   const blocks = parts.length ? parts.map((m, i) => ({ title: m[1], text: originalMarkdown.slice(m.index + m[0].length, parts[i + 1]?.index ?? originalMarkdown.length).trim() })) : [{ title: '', text: originalMarkdown }]
   for (const [bi, block] of blocks.entries()) {
     if (block.title) checkPoints.push({ id: `${id}-h${bi}`, level: 1, label: block.title, sourceText: block.title, group: block.title, role: 'heading' })
@@ -50,6 +57,7 @@ function addItem(title, body, chapter, number, reference = false) {
       }
     }
   }
+  if (unchanged) assert.deepEqual(checkPoints.map(p => [p.id,p.level,p.role,comparable(p.sourceText)]), old.checkPoints.map(p => [p.id,p.level,p.role,comparable(p.sourceText)]), `Checkpoint mismatch: ${title}`)
   items.push({ id, source: chapter.source, kind: reference ? 'reference' : 'full_answer', chapterId: chapter.id, chapter: chapter.title, chapterIndex: chapter.index, title, pdfPages: [], anchor: id,
     originalMarkdown, sections, tables: [], reviewedHeadingHints: parts.map(m => m[1]), reviewedKeywordHints: [], redlineIds: [], confirmedRelatedIds: [], candidateRelatedIds: [], sourceSignals: [], checkPoints,
     coreA: !reference, appendixFullAnswer: false, fullTextForLookup: false })
@@ -60,13 +68,13 @@ for (const [ci, m] of chapterMatches.entries()) {
   const body = main.slice(m.index + m[0].length, chapterMatches[ci + 1]?.index ?? main.length)
   const chapter = { id: `ultimate-c${ci + 1}`, source: 'A', title: m[1], index: ci + 1, isAppendix: false, isChapter: true, isGuide: false, intro: '', flow: [] }
   chapters.push(chapter)
-  const matches = [...body.matchAll(/^## (\d{2})[　 ]+(.+)$/gm)]
+  const matches = [...body.matchAll(/^### (\d{2})[　 ]+(.+)$/gm)]
   assert.ok(matches.length, chapter.title)
   for (const [i, q] of matches.entries()) addItem(`${q[1]}　${q[2]}`, body.slice(q.index + q[0].length, matches[i + 1]?.index ?? body.length), chapter, Number(q[1]))
 }
 const chapter = { id: 'ultimate-appendix', source: 'B', title: '附录　名词解释与低频补漏', index: 11, isAppendix: true, isChapter: false, isGuide: false, intro: '', flow: [] }
 chapters.push(chapter)
-const matches = [...appendix.matchAll(/^A(\d{2})[　 ]+(.+)$/gm)]
+const matches = [...appendix.matchAll(/^### A(\d{2})[　 ]+(.+)$/gm)]
 chapter.intro = clean(appendix.slice(appendix.indexOf('\n') + 1, matches[0].index))
 for (const [i, q] of matches.entries()) addItem(`A${q[1]}　${q[2]}`, appendix.slice(q.index + q[0].length, matches[i + 1]?.index ?? appendix.length), chapter, Number(q[1]), true)
 assert.equal(chapterMatches.length, 10)
@@ -75,11 +83,11 @@ assert.equal(matches.length, 22)
 assert.equal(new Set(items.map(i => i.id)).size, 78)
 assert.deepEqual(items.filter(i => i.coreA).map(i => Number(i.title.slice(0, 2))), Array.from({ length: 56 }, (_, i) => i + 1))
 assert.ok(items.every(i => i.sections.length && i.originalMarkdown))
-const content = { meta: { schemaVersion: 1, contentVersion: '2026-10-21-management-ultimate-v1', sourceHashes: { A: hash(raw), B: hash(appendix) }, builtAt: '2026-10-21T00:00:00.000Z' }, versionConflict: { aStatement: '正文56题：50道简述题＋6道论述题。', bStatement: '附录22组用于名解与辨析，仅供查阅。', resolution: '管理学 ultimate 新版；旧 A/B 册学习记录保留，不继承为新题成绩。' }, chapters, items, pages, relations: [], keywords: [] }
+const content = { meta: { schemaVersion: 1, contentVersion: '2026-10-29-management-final-v1', sourceHashes: { A: hash(raw), B: hash(appendix) }, builtAt: '2026-10-29T00:00:00.000Z' }, versionConflict: { aStatement: '正文56题：50道简述题＋6道论述题。', bStatement: '附录22组用于名解与辨析，仅供查阅。', resolution: '管理学最终版；文字及核对项一致的题目沿用记录，改写题保留旧记录并重新训练。' }, chapters, items, pages, relations: [], keywords: [] }
 writeFileSync('src/data/generated/management-ultimate.json', JSON.stringify(content))
 console.log(`Management ultimate: ${items.length} items, 56 trainable, 22 references. SHA256 ${hash(raw)}`)
 
 const legacy = JSON.parse(readFileSync('src/data/generated/content.json', 'utf8'))
-writeFileSync('src/data/generated/management-legacy-index.json', JSON.stringify(Object.fromEntries(legacy.items.map(i => [i.id, { title: i.title, chapter: i.chapter }]))))
+writeFileSync('src/data/generated/management-legacy-index.json', JSON.stringify(Object.fromEntries([...legacy.items, ...previous.items].map(i => [i.id, { title: i.title, chapter: i.chapter }]))))
 
-writeFileSync('reports/management-import.json', JSON.stringify({ source: 'sources/管理学_ultimate.md', sourceHash: hash(raw), contentVersion: content.meta.contentVersion, main: 56, reference: 22, items: items.map(i => ({ id: i.id, title: i.title, kind: i.kind, chapterId: i.chapterId, sections: i.sections.length, checkpoints: i.checkPoints.length, sportsCheckpoints: i.checkPoints.filter(p => p.role === 'sports').map(p => ({ id: p.id, sourceText: p.sourceText })) })) }, null, 2) + '\n')
+writeFileSync('reports/management-import.json', JSON.stringify({ source: 'sources/体育管理学_最终版.md', sourceHash: hash(raw), contentVersion: content.meta.contentVersion, main: 56, reference: 22, mappings, items: items.map(i => ({ id: i.id, title: i.title, kind: i.kind, chapterId: i.chapterId, sections: i.sections.length, checkpoints: i.checkPoints.length, sportsCheckpoints: i.checkPoints.filter(p => p.role === 'sports').map(p => ({ id: p.id, sourceText: p.sourceText })) })) }, null, 2) + '\n')

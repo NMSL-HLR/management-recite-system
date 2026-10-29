@@ -20,7 +20,7 @@ export function Archive() {
   return (
     <div className="stack">
       <h1>学习档案</h1>
-      <p className="muted">包含新旧教材历史。旧 A/B 册成绩保留，不计入 ultimate 新题；未完成旧草稿与考试可在管理学详细设置的迁移待查查看。</p>
+      <p className="muted">包含新旧教材历史。旧 A/B 册成绩保留，不计入当前新版题目；未完成旧草稿与考试可在管理学详细设置的迁移待查查看。</p>
       {app.state.notes.some(n => !getItem(n.itemId)) && <section className="card"><h2>旧版批注</h2>{app.state.notes.filter(n => !getItem(n.itemId)).map(n => <details key={n.itemId}><summary>{oldTitle(n.itemId) || n.itemId}</summary><pre>{n.text}</pre></details>)}</section>}
       <section className="card">
         <h2>按天的证据</h2><p className="muted">色条与计数依次为：独立提取 / 基本提取 / 提示依赖 / 重新学习；次数不代表掌握比例。</p>

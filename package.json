@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "parse": "node scripts/parse-content.mjs && node scripts/parse-physiology.mjs && node scripts/parse-policy.mjs && node scripts/parse-management.mjs",
+    "parse": "node scripts/parse-content.mjs && node scripts/parse-general-20261029.mjs && node scripts/parse-management.mjs",
     "pretest": "npm run parse",
     "test": "vitest run",
     "dev": "vite",
@@ -15,9 +15,9 @@
     "package-release": "node scripts/package-fusion.mjs",
     "package-fusion": "node scripts/package-fusion.mjs",
     "verify-fusion": "node scripts/verify-fusion.mjs",
-    "parse:physiology": "node scripts/parse-physiology.mjs",
+    "parse:physiology": "node scripts/parse-general-20261029.mjs",
     "verify-content": "node scripts/verify-content.mjs",
-    "parse:policy": "node scripts/parse-policy.mjs"
+    "parse:policy": "node scripts/parse-general-20261029.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

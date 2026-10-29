@@ -14,9 +14,9 @@ import { coachInput } from '../src/coach/recallAdapter'
 import { buildCandidates } from '../src/coach/candidates'
 
 const old = legacy as ContentBundle
-const source = readFileSync('sources/管理学_ultimate.md', 'utf8')
+const source = readFileSync('sources/体育管理学_最终版.md', 'utf8')
 const hash = (s: string) => createHash('sha256').update(s).digest('hex')
-const normalize = (s: string) => s.replace(/^### .+$/gm, '').replace(/\\(?=[.*])/g, '').replace(/\s+/g, '')
+const normalize = (s: string) => s.replace(/^#### .+$/gm, '').replace(/\\(?=[.*])/g, '').replace(/\s+/g, '')
 const now = new Date(2026, 9, 21, 10).getTime()
 function oldState() {
   const item = old.items.find(i => i.coreA)!
@@ -33,7 +33,7 @@ describe('management ultimate replacement', () => {
     expect(content.items.filter(i => i.kind === 'reference').map(i => Number(i.title.slice(1, 3)))).toEqual(Array.from({ length: 22 }, (_, i) => i + 1))
     expect(content.chapters.filter(c => c.isChapter)).toHaveLength(10)
     expect(content.meta.schemaVersion).toBe(old.meta.schemaVersion)
-    expect(content.meta.sourceHashes).toEqual({ A: hash(source), B: hash(source.slice(source.indexOf('# 附录'))) })
+    expect(content.meta.sourceHashes).toEqual({ A: hash(source), B: hash(source.slice(source.indexOf('## 附录'))) })
   })
   it('preserves every answer paragraph and heading without adding claims or fabricated PDF pages', () => {
     const ids = new Set<string>()
@@ -46,7 +46,7 @@ describe('management ultimate replacement', () => {
         expect(ids.has(cp.id)).toBe(false); ids.add(cp.id)
         expect(normalize(item.originalMarkdown) + item.reviewedHeadingHints.join('')).toContain(normalize(cp.sourceText))
       }
-      expect(item.reviewedHeadingHints).toEqual([...item.originalMarkdown.matchAll(/^### (.+)$/gm)].map(m => m[1]))
+      expect(item.reviewedHeadingHints).toEqual([...item.originalMarkdown.matchAll(/^#### (.+)$/gm)].map(m => m[1]))
     }
   })
   it('does not turn guide, appendix or presumed relations into training tasks', () => {
@@ -91,6 +91,26 @@ describe('management ultimate replacement', () => {
     expect(cleaned.day.budgetMinutes).toBe(platform.day.budgetMinutes)
     expect(retireUnavailableMrc(cleaned)).toBe(cleaned)
     expect(decide(lockChapters(cleaned, defaultPersisted(), now), defaultPersisted(), now).kind).toBe('next')
+  })
+  it('keeps all prior ultimate IDs and checkpoint meanings for this formatting-only update', () => {
+    const previous = JSON.parse(readFileSync('sources/editions/management-2026-10-21.json', 'utf8')) as ContentBundle
+    const meaning = (s: string) => s.replace(/^#+ /gm, '').replace(/\\(?=[.*])/g, '').replace(/\*\*/g, '').replace(/\s+/g, '')
+    expect(content.items.map(i => i.id)).toEqual(previous.items.map(i => i.id))
+    for (const item of content.items) {
+      const before = previous.items.find(i => i.id === item.id)!
+      expect(meaning(item.originalMarkdown)).toBe(meaning(before.originalMarkdown))
+      expect(item.checkPoints.map(p => [p.id,p.level,p.role,meaning(p.sourceText)])).toEqual(before.checkPoints.map(p => [p.id,p.level,p.role,meaning(p.sourceText)]))
+    }
+    const mrc = defaultPersisted(), item = previous.items[0]
+    const attempt = commitAttempt({ ...startRecall(item.id, now - 1000), checkedPointIds: item.checkPoints.map(p => p.id), phase: 'restate' }, item, now, mrc.settings.gaps, [])
+    const recall = { ...startRecall(item.id, now + 1), draft: '可继续的ultimate草稿' }
+    const incoming = { ...mrc, contentVersion: previous.meta.contentVersion, sourceHashes: previous.meta.sourceHashes, attempts: [attempt], recall, recallQueue: [item.id] }
+    const migrated = reconcileContent(incoming)
+    expect(migrated.attempts).toEqual([attempt]); expect(migrated.recall).toEqual(recall)
+    expect(migrated.migrationReview).toEqual([])
+    // A complete backup with no platform task is permitted; the provider adopts its existing Recall.
+    const restored = inspectFusionImport(JSON.stringify(makeEnvelope(defaultFusion(now), incoming)), defaultFusion(now), mrc)
+    expect(restored.mrc.attempts).toEqual([attempt]); expect(restored.mrc.recall).toEqual(recall)
   })
   it('still rejects unsupported full-backup versions and invalid records', () => {
     const platform = defaultFusion(now)

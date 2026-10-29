@@ -118,12 +118,26 @@ describe('source-grounded rubrics', () => {
     expect(r[2].reference).toContain('肌肉舒张')
     expect(reviewAnswer(p.checklist.join('\n'), r).rows.every(x => x.status !== 'matched')).toBe(true)
   })
+  it('maps complete numbered physiology paragraphs and headings repeated at the start of body sentences', () => {
+    const paragraph = physiologyPack.points.find(p => p.title.startsWith('F22｜'))!
+    const r = generalRubric(paragraph)
+    expect(r).toHaveLength(4)
+    expect(r[0].reference.replace(/\*\*/g, '')).toContain('心肌由冠状循环供血')
+    expect(r[0].reference).not.toContain('毛细血管、线粒体丰富')
+    const heart = generalRubric(physiologyPack.points.find(p => p.title.startsWith('F23｜'))!)
+    expect(heart[0].reference).toContain('1分钟内的心动周期')
+    expect(heart[0].reference).toContain('心率可有效反映心室的收缩情况')
+    expect(heart[0].reference).not.toContain('一侧心室收缩时一次性射入动脉')
+  })
   it('uses policy paragraphs, not just their titles', () => {
     const p = policyPack.points[0], r = generalRubric(p)
-    expect(r).toHaveLength(9)
-    expect(r[0].reference).toContain('群众持续参与')
-    expect(r[0].reference).not.toContain('财政能力')
-    expect(reviewAnswer(p.content, r).rows.every(x => x.status === 'matched')).toBe(true)
+    expect(r).toHaveLength(4)
+    expect(r[0].reference).toContain('体育功能')
+    expect(r[0].reference).not.toContain('记忆提示')
+    expect(r.map(x => x.reference).join('')).not.toContain('本质“三项”')
+    const rows = reviewAnswer(p.content, r).rows
+    expect(rows.map(x => x.status)).toEqual(['matched', 'related', 'related', 'matched'])
+    expect(rows.every(x => x.missing.length === 0 && x.evidence.every(e => e.exact))).toBe(true)
   })
   it('refuses ambiguous or absent paragraph mappings, and never assigns the whole answer to every label', () => {
     const r = generalRubric({ subject: '测试', title: '题目', content: '概念\n第一种内容。\n概念\n第二种内容。', checklist: ['概念', '不存在的点'] })

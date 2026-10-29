@@ -133,7 +133,7 @@ function ItemView({ item, mode, note }: { item: StudyItem; mode: ReaderMode; not
     <article className="stack">
       <header className="page-head">
         <div>
-          <p className="kicker">{item.chapter} · 管理学 ultimate</p>
+          <p className="kicker">{item.chapter} · 管理学最终版</p>
           <h1>{item.title}</h1>
           {item.fullTextForLookup ? <p className="badge">B级骨架 · 全文供查阅 · 不因篇幅提高优先级</p> : null}
           <Signals item={item} />

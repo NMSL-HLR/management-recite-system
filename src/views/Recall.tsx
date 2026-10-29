@@ -41,7 +41,7 @@ export function Recall() {
     <div className="stack recall-page">
       <header className="page-head">
         <div>
-          <p className="kicker">{item.coreA ? '管理学 ultimate · 正文完整题' : '管理学附录'}</p>
+          <p className="kicker">{item.coreA ? '管理学最终版 · 正文完整题' : '管理学附录'}</p>
           <h1>{item.title}</h1>
           <Signals item={item} />
         </div>
