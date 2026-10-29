@@ -47,4 +47,24 @@ describe('evidence coach scope and compatibility',()=>{
 
  it('pausing new learning also pauses new supplements while keeping reviews eligible',()=>{const s=platform();s.settings.subjects['运动生理学'].newCap=0;const c=allCandidates(s,mrc(),now).find(c=>c.supplement)!;expect(beginTask(s,c,now)).toBe(s)})
 
+ it('failed full-test deadline stays fixed across four days of partial practice',()=>{
+  let s=finish(tested(platform(),'full'),now+1000,'miss');const id=s.active!.itemId
+  for(let day=1;day<=4;day++){
+   const at=now+day*DAY+2000;s=lockChapters(rollDay(s,at),mrc(),at)
+   const candidate=allCandidates(s,mrc(),at).find(c=>c.itemId===id)!
+   expect(candidate.activity).toBe('full')
+   s=finish(beginTask(s,{...candidate,activity:'short'},at),at+1000,'pass')
+  }
+ })
+ it('heading mistakes remain eligible in short repair scope',()=>{
+  const s=platform(),item=content.items.find(i=>i.coreA&&i.checkPoints.some(p=>p.role==='heading'))!
+  s.study!.declarations[key('mrc',item.id)]=now-2*DAY
+  const c=allCandidates(s,mrc(),now).find(c=>c.itemId===item.id)!
+  let active=finish(beginTask(s,{...c,activity:'full'},now),now+1000,'pass')
+  const r=active.study!.records[0],heading=r.scope.find(p=>p.role==='heading')!
+  r.outcomes[heading.id]='miss';r.complete=false
+  const session=makeSession(active,{...active.active!,id:'repair',activity:'short'})
+  expect(session.scope.some(p=>p.id===heading.id)).toBe(true)
+ })
+
 })

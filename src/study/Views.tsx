@@ -1,3 +1,4 @@
+import { allCandidates } from '../fusion/planner'
 import { useEffect, useRef, useState } from 'react'
 import { useFusion } from '../fusion/store'
 import { useApp } from '../state/store'
@@ -21,7 +22,7 @@ export function BudgetSetup() {
  <label className="field">英政保护分钟<input type="number" min="60" max="90" value={draft.protectedMinutes} onChange={e=>setDraft({...draft,protectedMinutes:Number(e.target.value)})}/></label>
  <label className="field">缓冲百分比<input type="number" min="0" max="20" value={draft.bufferPercent} onChange={e=>setDraft({...draft,bufferPercent:Number(e.target.value)})}/></label>
  <label className="field">新增覆盖时间比例<select value={draft.newShare} onChange={e=>setDraft({...draft,newShare:Number(e.target.value)})}>{[0.2,0.3,0.4,0.5].map(n=><option value={n} key={n}>{n*100}%</option>)}</select></label>
- <p>起点：管理学、体概每日新题各至多2题（可在科目设置调整）；新增覆盖占比上限防止堆积。失败题至少隔{draft.retryMinutes}分钟、每日最多{draft.maxDailyTests}次；完整验收最长{draft.fullEveryDays}天检查一次。它们是透明工程规则，不是个人记忆预测。</p></details>
+ <p>起点：管理学、体概每日新题各至多2题（可在科目设置调整）；新增覆盖占比上限防止堆积。失败题至少隔{draft.retryMinutes}分钟、每日最多{draft.maxDailyTests}次；完整验收按失败状态、重要性和容量安排，局部练习不推迟完整验收。它们是透明工程规则，不是个人记忆预测。</p></details>
  <button className="btn primary" data-testid="confirm-study-budget" disabled={!valid||netBudget(config)>600||f.blocked} onClick={()=>f.configureStudy(config)}>确认净学习预算</button>
  </section>
 }
@@ -29,15 +30,16 @@ export function StudySummary() {
  const f=useFusion(),a=useApp(),study=f.state.study
  const [selected,setSelected]=useState<string[]>([])
  const [query,setQuery]=useState('')
+ const [forecast,setForecast]=useState('')
  if(!study)return null
  const rows=coverage(f.state,a.state,a.now),days=daysLeft(study.config,a.now)
  const work=rows.reduce((n,r)=>n+r.uncovered*estimate(f.state,r.subject,'recovery',15)+r.unverified*estimate(f.state,r.subject,'full',15)+r.repair*estimate(f.state,r.subject,'short',12),0)
  const capacity=days*netBudget(study.config)
  const choices=[...content.items.filter(i=>i.coreA&&i.kind!=='reference').map(i=>({id:key('mrc',i.id),title:i.title,subject:'体育管理学'})),...f.state.general.points.filter(p=>!p.trainingBlocked&&p.subject!=='体育管理学').map(p=>({id:key('general',p.id),title:p.title,subject:p.subject}))]
  return <section className="card"><h2>距离初试 {days} 天 · 记忆恢复与验证</h2><p>初试开始：{study.config.deadline}。完成任务、清空队列都不等于掌握。</p>
- {rows.map(r=><p key={r.subject}><strong>{r.subject} · 正文{r.total}题</strong><br/>尚无接触记录{r.uncovered} · 已声明学过{r.declared} · 已记录待修复{r.repair}<br/>有范围内独立点证据{r.scopedIndependent} · 近期整题延迟验收通过{r.verified} · 未完整验证{r.unverified}</p>)}<p>另有{f.state.general.points.filter(p=>!p.trainingBlocked&&isSupplement(p)).length}组附录补充，使用同一预算、每日自动新增至多1组，但不计正文配额和分母；可在资料库练习。正文缺口估计不含这些补充的工作量。</p>
+ {rows.map(r=><p key={r.subject}><strong>{r.subject} · 正文{r.total}题</strong><br/>尚无接触记录{r.uncovered} · 已声明学过{r.declared} · 已记录待修复{r.repair}<br/>有范围内独立点证据{r.scopedIndependent} · 已有整题延迟验收证据{r.verified} · 未完整验证{r.unverified}</p>)}<p>另有{f.state.general.points.filter(p=>!p.trainingBlocked&&isSupplement(p)).length}组附录补充，使用同一预算、每日自动新增至多1组，但不计正文配额和分母；可在资料库练习。正文缺口估计不含这些补充的工作量。</p>
  <p className="muted">“尚无记录”不等于你从未学过。旧Attempt/FSRS自评单独保留，不推导历史细点成绩；已学声明不算通过。统计类别有重叠，参考和停用题不计入分母。</p>
- <details><summary>剩余容量与缺口</summary><p>按当前净预算重复安排至考前，约可分配{capacity}分钟。未覆盖恢复＋未完整验证＋当前修复，最低工作估计约{work}分钟；缺口至少{Math.max(0,work-capacity)}分钟。尚未计入之后的新遗忘和所有复测，不能据此承诺能完成。</p><p>样本不足3次时使用保守工程估时。稳定题不强行统一压成7→4→2天；考前完整检查分散在最后7天，预算装不下会显示缺口。未完成不会因截止日被隐藏。</p></details>
+ <details><summary>剩余容量与缺口</summary><button className="btn" onClick={()=>{const tasks=new Map<string,number>();for(let d=0;d<7;d++)for(const c of allCandidates(f.state,a.state,a.now+d*86400000))if(c.activity==='full')tasks.set(key(c.module,c.itemId),c.estimatedMinutes);const work=[...tasks.values()].reduce((n,m)=>n+m,0),room=Math.floor(netBudget(study.config)*0.3*7);setForecast(`未来7天已知整题验收${tasks.size}题，预计${work}分钟；按30%容量约${room}分钟，缺口${Math.max(0,work-room)}分钟。未含未来新学及新失败，不能据此承诺完成。`)}}>检查未来7天验收负荷</button>{forecast&&<p role="status">{forecast}</p>}<p>负荷预警：若155题每7天整题验收一次、每题15分钟，仅此就需约333分钟/天。新版稳定题间隔至少14或28天，并按当前预算的30%容量延长；失败题和考前验证仍可能超载，预算不足不代表负债消失。已有通过证据不会仅因过了七天被抹去。</p><p>按当前净预算重复安排至考前，约可分配{capacity}分钟。未覆盖恢复＋未完整验证＋当前修复，最低工作估计约{work}分钟；缺口至少{Math.max(0,work-capacity)}分钟。尚未计入之后的新遗忘和所有复测，不能据此承诺能完成。</p><p>样本不足3次时使用保守工程估时。稳定题不强行统一压成7→4→2天；考前完整检查分散在最后7天，预算装不下会显示缺口。未完成不会因截止日被隐藏。</p></details>
  <details><summary>我在纸上或旧版本已经学过</summary><p>勾选实际接触过的题，标为待验证。不能一键继承旧教材成绩。可搜索科目、题号或【A】，再取消尚未学过的题。</p><input aria-label="筛选已学声明" placeholder="例如：【A】、体育概论、F01" value={query} onChange={e=>setQuery(e.target.value)}/><button className="btn" onClick={()=>setSelected([...new Set([...selected,...choices.filter(p=>(p.subject+p.title).includes(query)&&!study.declarations[p.id]).map(p=>p.id)])])}>勾选当前筛选结果</button><div style={{maxHeight:300,overflow:'auto'}}>{choices.filter(p=>(p.subject+p.title).includes(query)).map(p=><label className="check" key={p.id}><input type="checkbox" checked={selected.includes(p.id)} disabled={Boolean(study.declarations[p.id])} onChange={e=>setSelected(e.target.checked?[...selected,p.id]:selected.filter(id=>id!==p.id))}/>{p.subject} · {p.title}{study.declarations[p.id]?'（已声明）':''}</label>)}</div><button className="btn" disabled={!selected.length||f.blocked} onClick={()=>{f.declareLearned(selected);setSelected([])}}>将所选题标为已学待验证</button></details>
  <details><summary>本版短测与完整验收记录（{study.records.length}）</summary>{study.records.slice(-30).reverse().map(r=><p key={r.id}>{choices.find(c=>c.id===key(r.module,r.itemId))?.title??r.itemId} · {activityLabel[r.activity]} · 测试{r.scope.length}/{r.allPointIds.length}项 · 通过{Object.values(r.outcomes).filter(x=>x==='pass').length} · 错漏{Object.values(r.outcomes).filter(x=>x==='miss').length} · {r.complete?'整题延迟验收通过':r.hinted?'使用提示，仍需闭卷验证':'尚未整题验证'}</p>)}</details>
  </section>
@@ -48,6 +50,7 @@ export function StudyTimer() {
  const exam=app.state.exam?f.state.study?.exams.find(e=>e.id===app.state.exam!.id):f.state.active?.status!=='in_progress' && lastExam?.finishedAt && !f.state.study?.time[lastExam.id]?.confirmed ? lastExam:null
  const task=exam?{id:exam.id,status:exam.finishedAt?'completed':'in_progress'}:f.state.active, entry=task?f.state.study?.time[task.id]:null
  const [minutes,setMinutes]=useState(''),paused=useRef(false),lastInput=useRef(Date.now())
+ useEffect(()=>{setMinutes('');paused.current=false;lastInput.current=Date.now()},[task?.id])
  const ticking=useRef(f.tick);ticking.current=f.tick
  const onTraining=exam ? f.panel==='mrc'&&app.state.view==='exam' : f.panel==='scoped'||f.panel==='general'||(f.panel==='mrc'&&app.state.view==='recall')
  useEffect(()=>{
@@ -62,7 +65,7 @@ export function StudyTimer() {
  },[task?.id,task?.status,onTraining,Boolean(f.state.study)])
  if(!f.state.study||!task||!entry)return null
  return <aside className="card study-timer"><p>本任务已观测操作用时 {Math.round(entry.seconds/60*10)/10} 分钟。后台、暂停和连续2分钟无操作不计；纸面作答请在完成后补记净用时。</p>
- {task.status==='in_progress'?<button className="btn" disabled={f.blocked} onClick={()=>{paused.current=!entry.paused;lastInput.current=Date.now();f.tick(!paused.current)}}>{entry.paused?'继续计时':'暂停计时'}</button>:!entry.confirmed?<div><label className="field">本题总净用时（含纸面作答、核对、复述）<input aria-label="确认本题净分钟" type="number" min="1" max="600" value={minutes} placeholder={String(Math.max(1,Math.ceil(entry.seconds/60)))} onChange={e=>setMinutes(e.target.value)}/></label><button className="btn" onClick={()=>f.confirmTime(minutes?Number(minutes):Math.max(1,Math.ceil(entry.seconds/60)),exam?.id)}>确认用时</button><p>不确认则保留预计预算，不用这条数据校准速度；超时照实占预算。</p></div>:<p>净用时已确认，用于同科同类型估时；不会改变成绩。</p>}
+ {task.status==='in_progress'?<button className="btn" disabled={f.blocked} onClick={()=>{paused.current=!entry.paused;lastInput.current=Date.now();f.tick(!paused.current)}}>{entry.paused?'继续计时':'暂停计时'}</button>:!entry.confirmed?<div><label className="field">本题总净用时（含纸面作答、核对、复述）<input aria-label="确认本题净分钟" type="number" min="1" max="600" value={minutes} placeholder={String(Math.max(1,Math.ceil(entry.seconds/60)))} onChange={e=>setMinutes(e.target.value)}/></label><button className="btn" disabled={!minutes.trim()||Number(minutes)<=0} onClick={()=>f.confirmTime(Number(minutes),exam?.id)}>确认用时</button><p>不确认则保留预计预算，不用这条数据校准速度；超时照实占预算。</p></div>:<p>净用时已确认，用于同科同类型估时；不会改变成绩。</p>}
  </aside>
 }
 export function ScopedTraining() {

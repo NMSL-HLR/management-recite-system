@@ -75,43 +75,43 @@
       "days": 51,
       "overdue": false,
       "netBudget": 54,
-      "tasks": 160,
-      "actualMinutes": 2604,
+      "tasks": 171,
+      "actualMinutes": 2618,
       "daysStopped": 51,
-      "overrunStops": 11,
+      "overrunStops": 6,
       "uncovered": 111,
-      "repair": 20,
-      "unverified": 143,
+      "repair": 17,
+      "unverified": 130,
       "subjectRows": [
         {
           "subject": "体育管理学",
           "total": 56,
           "uncovered": 52,
           "declared": 0,
-          "verified": 1,
+          "verified": 4,
           "repair": 0,
           "scopedIndependent": 4,
-          "unverified": 55
+          "unverified": 52
         },
         {
           "subject": "运动生理学",
           "total": 59,
-          "uncovered": 40,
+          "uncovered": 23,
           "declared": 0,
-          "verified": 9,
-          "repair": 5,
-          "scopedIndependent": 15,
-          "unverified": 50
+          "verified": 20,
+          "repair": 15,
+          "scopedIndependent": 27,
+          "unverified": 39
         },
         {
           "subject": "体育概论",
           "total": 40,
-          "uncovered": 19,
+          "uncovered": 36,
           "declared": 0,
-          "verified": 2,
-          "repair": 15,
-          "scopedIndependent": 7,
-          "unverified": 38
+          "verified": 1,
+          "repair": 2,
+          "scopedIndependent": 4,
+          "unverified": 39
         }
       ]
     },
@@ -121,43 +121,43 @@
       "days": 51,
       "overdue": false,
       "netBudget": 108,
-      "tasks": 333,
-      "actualMinutes": 5352,
+      "tasks": 353,
+      "actualMinutes": 5365,
       "daysStopped": 51,
-      "overrunStops": 6,
-      "uncovered": 61,
-      "repair": 31,
-      "unverified": 132,
+      "overrunStops": 7,
+      "uncovered": 58,
+      "repair": 32,
+      "unverified": 109,
       "subjectRows": [
         {
           "subject": "体育管理学",
           "total": 56,
           "uncovered": 22,
           "declared": 0,
-          "verified": 7,
-          "repair": 6,
-          "scopedIndependent": 20,
-          "unverified": 49
+          "verified": 17,
+          "repair": 7,
+          "scopedIndependent": 22,
+          "unverified": 39
         },
         {
           "subject": "运动生理学",
           "total": 59,
-          "uncovered": 24,
+          "uncovered": 21,
           "declared": 0,
-          "verified": 14,
-          "repair": 12,
-          "scopedIndependent": 24,
-          "unverified": 45
+          "verified": 18,
+          "repair": 13,
+          "scopedIndependent": 28,
+          "unverified": 41
         },
         {
           "subject": "体育概论",
           "total": 40,
           "uncovered": 15,
           "declared": 0,
-          "verified": 2,
-          "repair": 13,
-          "scopedIndependent": 12,
-          "unverified": 38
+          "verified": 11,
+          "repair": 12,
+          "scopedIndependent": 14,
+          "unverified": 29
         }
       ]
     },
@@ -167,43 +167,43 @@
       "days": 51,
       "overdue": false,
       "netBudget": 216,
-      "tasks": 683,
-      "actualMinutes": 10841,
+      "tasks": 730,
+      "actualMinutes": 10812,
       "daysStopped": 51,
       "overrunStops": 7,
       "uncovered": 0,
-      "repair": 56,
-      "unverified": 141,
+      "repair": 31,
+      "unverified": 53,
       "subjectRows": [
         {
           "subject": "体育管理学",
           "total": 56,
           "uncovered": 0,
           "declared": 0,
-          "verified": 1,
-          "repair": 9,
-          "scopedIndependent": 30,
-          "unverified": 55
+          "verified": 38,
+          "repair": 8,
+          "scopedIndependent": 50,
+          "unverified": 18
         },
         {
           "subject": "运动生理学",
           "total": 59,
           "uncovered": 0,
           "declared": 0,
-          "verified": 13,
-          "repair": 23,
-          "scopedIndependent": 40,
-          "unverified": 46
+          "verified": 36,
+          "repair": 14,
+          "scopedIndependent": 50,
+          "unverified": 23
         },
         {
           "subject": "体育概论",
           "total": 40,
           "uncovered": 0,
           "declared": 0,
-          "verified": 0,
-          "repair": 24,
-          "scopedIndependent": 16,
-          "unverified": 40
+          "verified": 28,
+          "repair": 9,
+          "scopedIndependent": 34,
+          "unverified": 12
         }
       ]
     },
@@ -213,13 +213,13 @@
       "days": 51,
       "overdue": true,
       "netBudget": 108,
-      "tasks": 284,
-      "actualMinutes": 5352,
+      "tasks": 289,
+      "actualMinutes": 5280,
       "daysStopped": 51,
-      "overrunStops": 7,
+      "overrunStops": 5,
       "uncovered": 4,
-      "repair": 43,
-      "unverified": 154,
+      "repair": 60,
+      "unverified": 143,
       "subjectRows": [
         {
           "subject": "体育管理学",
@@ -227,8 +227,8 @@
           "uncovered": 4,
           "declared": 0,
           "verified": 0,
-          "repair": 36,
-          "scopedIndependent": 3,
+          "repair": 39,
+          "scopedIndependent": 2,
           "unverified": 56
         },
         {
@@ -236,20 +236,20 @@
           "total": 59,
           "uncovered": 0,
           "declared": 0,
-          "verified": 0,
-          "repair": 6,
+          "verified": 12,
+          "repair": 18,
           "scopedIndependent": 33,
-          "unverified": 59
+          "unverified": 47
         },
         {
           "subject": "体育概论",
           "total": 40,
           "uncovered": 0,
           "declared": 0,
-          "verified": 1,
-          "repair": 1,
-          "scopedIndependent": 6,
-          "unverified": 39
+          "verified": 0,
+          "repair": 3,
+          "scopedIndependent": 3,
+          "unverified": 40
         }
       ]
     },

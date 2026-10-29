@@ -60,7 +60,14 @@ export function adaptCandidates(state: FusionState, mrc: CoachPersisted, raw: Ca
     const declared = state.study!.declarations[key(c.module,c.itemId)]
     const touched = !c.isNew || Boolean(declared) || records.length>0
     const full = records.filter(r=>r.complete).at(-1)
-    const fullDue = (full?.finishedAt ?? exposure) + (full ? state.study!.config.fullEveryDays : 1) * DAY
+    const lastFull = records.filter(r=>r.activity==='full').at(-1)
+    // A partial test cannot move this anchor. Successful whole answers retain their evidence.
+    const importantFull = /【A】/.test(c.title) || content.items.find(i=>i.id===c.itemId)?.sourceSignals.some(s=>s.type==='actual_exam'||s.type==='teacher_must')
+    const capacityDays = Math.ceil(155 * 15 / Math.max(1, netBudget(state.study!.config) * 0.3))
+    const stableGap = Math.max(importantFull ? 14 : 28, capacityDays)
+    const fullDue = full && !Object.values(pointEvidence(records)).includes('miss')
+      ? full.finishedAt + stableGap * DAY
+      : (lastFull?.finishedAt ?? records[0]?.startedAt ?? exposure) + DAY
     const end = Date.parse(state.study!.config.deadline+'T00:00:00+08:00')
     // Spread final checks across the last 7 days by stable ID, never cram all into the last day.
     const finalSlot = end - (1 + parseInt(fingerprint(c.itemId),16)%7)*DAY
@@ -81,7 +88,7 @@ export function makeSession(state: FusionState, task: TrainingTask): ScopedSessi
   const records = matchingRecords(state,task.module,task.itemId)
   const evidence = pointEvidence(records)
   const lastSeen = (id: string) => Math.max(0,...records.filter(r=>r.outcomes[id] && r.outcomes[id]!=='untested').map(r=>r.finishedAt))
-  const sorted = [...(task.activity==='short'?points.filter(p=>p.role!=='heading'):points)].sort((a,b)=>lastSeen(a.id)-lastSeen(b.id)||a.id.localeCompare(b.id))
+  const sorted = [...(task.activity==='short'?points.filter(p=>p.role!=='heading'||evidence[p.id]==='miss'):points)].sort((a,b)=>lastSeen(a.id)-lastSeen(b.id)||a.id.localeCompare(b.id))
   const misses = sorted.filter(p=>evidence[p.id]==='miss')
   const sports = sorted.filter(p=>p.role==='sports')
   const picked = task.activity==='short' ? [...new Map([sorted[0],misses[0]??sorted[1],sports[0]??sorted[2]].filter(Boolean).map(p=>[p.id,p])).values()] : points
@@ -98,10 +105,10 @@ export function saveScoped(state: FusionState, mrc: CoachPersisted, now: number)
   const nextAt=now+(allPass&&!s.hinted&&!Object.values(accumulated).includes('miss')?(complete?3*DAY:DAY):state.study!.config.retryMinutes*60000)
   return {...s,scope:s.scope.map(p=>({...p,reference:''})),id:s.taskId,phase:'done',finishedAt:now,delayed,complete,nextAt}
 }
-export function coverage(state: FusionState,mrc:CoachPersisted,now:number) {
+export function coverage(state: FusionState,mrc:CoachPersisted,_now:number) {
   const items=[...content.items.filter(i=>i.kind!=='reference'&&i.coreA).map(i=>({module:'mrc',id:i.id,subject:'体育管理学'})),...state.general.points.filter(p=>!p.trainingBlocked&&!isSupplement(p)&&p.subject!=='体育管理学').map(p=>({module:'general',id:p.id,subject:p.subject}))]
   return [...new Set(items.map(i=>i.subject))].map(subject=>{
-    const rows=items.filter(i=>i.subject===subject).map(i=>{const rs=matchingRecords(state,i.module,i.id),r=rs.at(-1),full=rs.filter(x=>x.complete).at(-1),legacy=i.module==='mrc'?mrc.attempts.filter(a=>a.itemId===i.id).at(-1):null,general=i.module==='general'?state.general.points.find(p=>p.id===i.id):null,e=lastExposure(state,mrc,i.module,i.id);return {uncovered:!e&&!general?.totalReviews&&!legacy,declared:Boolean(state.study?.declarations[key(i.module,i.id)]),verified:Boolean(full && now-full.finishedAt<= (state.study?.config.fullEveryDays??7)*DAY && !rs.some(x=>x.finishedAt>full.finishedAt&&(x.hinted||Object.values(x.outcomes).includes('miss')))),repair:Boolean(r?(r.hinted||Object.values(pointEvidence(rs)).includes('miss')):(legacy&&['cue_dependent','relearned'].includes(legacy.evidenceState))||(general&&['relearning','learning'].includes(general.state)&&general.totalReviews>0)),independent:Boolean(r&&!r.hinted&&r.scope.some(p=>p.role!=='heading'&&r.outcomes[p.id]==='pass'))}})
+    const rows=items.filter(i=>i.subject===subject).map(i=>{const rs=matchingRecords(state,i.module,i.id),r=rs.at(-1),full=rs.filter(x=>x.complete).at(-1),legacy=i.module==='mrc'?mrc.attempts.filter(a=>a.itemId===i.id).at(-1):null,general=i.module==='general'?state.general.points.find(p=>p.id===i.id):null,e=lastExposure(state,mrc,i.module,i.id);return {uncovered:!e&&!general?.totalReviews&&!legacy,declared:Boolean(state.study?.declarations[key(i.module,i.id)]),verified:Boolean(full && !rs.some(x=>x.finishedAt>full.finishedAt&&(x.hinted||Object.values(x.outcomes).includes('miss')))),repair:Boolean(r?(r.hinted||Object.values(pointEvidence(rs)).includes('miss')):(legacy&&['cue_dependent','relearned'].includes(legacy.evidenceState))||(general&&['relearning','learning'].includes(general.state)&&general.totalReviews>0)),independent:Boolean(r&&!r.hinted&&r.scope.some(p=>p.role!=='heading'&&r.outcomes[p.id]==='pass'))}})
     return {subject,total:rows.length,uncovered:rows.filter(r=>r.uncovered).length,declared:rows.filter(r=>r.declared).length,verified:rows.filter(r=>r.verified).length,repair:rows.filter(r=>r.repair).length,scopedIndependent:rows.filter(r=>r.independent).length,unverified:rows.filter(r=>!r.verified).length}
   })
 }
