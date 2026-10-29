@@ -1,3 +1,6 @@
+import { newStudy, netBudget, saveScoped, studyDate } from '../study/coach'
+import { tickStudy, confirmTime, tickExam, confirmExamTime } from '../study/time'
+import type { StudyConfig, ScopedSession } from '../study/types'
 import { applyTextbookChanges } from '../general/revisions'
 import { policyPack, physiologyPack } from '../general/textbook'
 import { downloadJson, localDateStamp } from '../browser/download'
@@ -10,11 +13,17 @@ import { addGeneralPoint, reviewGeneral } from '../general/data'
 import { defaultPersisted } from '../state/defaults'
 import { installBuiltInTextbooks } from '../general/textbook'
 import type { Rating } from '../general/types'
-import { beginTask, decide, finishTask, lockChapters, reconcileMrc, defaultFusion, adoptAlphaDay, selectSubjects, preparePractice, beginPractice } from './planner'
+import { beginTask, decide, finishTask, lockChapters, reconcileMrc, defaultFusion, adoptAlphaDay, selectSubjects, preparePractice, beginPractice, remaining } from './planner'
 import { inspectFusionImport, loadPlatform, makeEnvelope, validateMrcSnapshot, validatePlatform, writeBundle, type FusionImportPlan } from './transfer'
 import { FUSION_BACKUP_KEY, PLATFORM_KEY, JOURNAL_KEY, type Candidate, type FusionState, type GeneralSession, type PracticeScope, type Panel, type SubjectPolicy } from './types'
 
 interface FusionApi {
+  configureStudy: (config: StudyConfig) => void
+  declareLearned: (ids: string[]) => void
+  patchScoped: (patch: Partial<ScopedSession>) => void
+  saveScoped: () => void
+  tick: (running: boolean) => void
+  confirmTime: (minutes: number, examId?: string) => void
   state: FusionState
   decision: ReturnType<typeof decide>
   panel: Panel
@@ -66,7 +75,8 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     const loaded = loadPlatform(localStorage, Date.now())
     if (!loaded.blocked && !localStorage.getItem(PLATFORM_KEY)) loaded.state = adoptAlphaDay(loaded.state, mrc.state, Date.now())
     const general = loaded.blocked || mrc.storageBlocked ? loaded.state.general : installBuiltInTextbooks(loaded.state.general, Date.now(), loaded.state.active?.status === 'in_progress' ? loaded.state.active.itemId : undefined)
-    return { ...loaded, state: { ...loaded.state, general }, needsSave: general !== loaded.state.general }
+    const study=loaded.state.study && !loaded.blocked ? {...loaded.state.study,time:Object.fromEntries(Object.entries(loaded.state.study.time).map(([id,t])=>[id,{...t,paused:true,lastTick:null}]))} : loaded.state.study
+    return { ...loaded, state: { ...loaded.state, general, ...(study?{study}:{}) }, needsSave: general !== loaded.state.general || Boolean(study && JSON.stringify(study)!==JSON.stringify(loaded.state.study)) }
   }, [])
   const [state, setState] = useState(loaded.state)
   const ref = useRef(state)
@@ -129,17 +139,21 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
       }
       setResumeNotice(null)
       if (!persist(before)) return
+      if (decision.task.activity && decision.task.activity !== 'recovery') { setPanel('scoped'); return }
       if (decision.task.module === 'mrc') {
         if (!mrc.openModuleRecall(decision.task.itemId, decision.task.startedAt)) { setMessage('管理学草稿与当前任务冲突，原草稿已保留，请导出备份。'); return }
         mrc.setView('recall')
       }
       setPanel(decision.task.module === 'mrc' ? 'mrc' : 'general'); return
     }
+    if (!before.study) { setMessage('请先在首页确认净学习时间，旧预算不能当作你的实际可用时间。'); setPanel('today'); return }
+    if (mrc.state.exam) { setMessage('请先继续或结束已保存的考试，避免并行计时。'); mrc.setView('exam'); setPanel('mrc'); return }
     const candidate = chosen ?? (decision.kind === 'next' ? decision.candidate : null)
     if (!candidate) { setPanel('today'); return }
-    const next = beginTask(before, candidate, Date.now())
+    const next = tickStudy(beginTask(before, candidate, Date.now()), Date.now(), true)
     if (next === before || !next.active) { setMessage('这项训练不在今日配额内，或剩余预算不足。可以在设置中调整。'); setPanel('today'); return }
     if (!persist(next)) return
+    if (candidate.activity && candidate.activity !== 'recovery') { setPanel('scoped'); return }
     if (candidate.module === 'mrc' && !mrc.openModuleRecall(candidate.itemId, next.active.startedAt)) {
       // Keep the reservation recoverable if rollback storage also fails.
       persist(before); setMessage('管理学训练未能开始，草稿没有被覆盖。'); return
@@ -149,6 +163,8 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
   const requestPractice = (scope: PracticeScope) => {
     if (blockedRef.current || mrc.storageBlocked) { setMessage('本地记录受保护，请先恢复数据再训练。'); return }
     const before = current()
+    if (!before.study) { setMessage('先确认净学习时间，再开始自主练习。'); setPanel('today'); return }
+    if (mrc.state.exam) { setMessage('请先结束或继续保存中的考试。'); mrc.setView('exam'); setPanel('mrc'); return }
     if (before.active?.status === 'in_progress') {
       if (scope.kind === 'item' && scope.module === before.active.module && scope.itemIds[0] === before.active.itemId) { start(); return }
       setResumeNotice(`《${before.active.title}》还未完成，草稿已保留。请先完成它，再开始《${scope.title}》。`); return
@@ -160,6 +176,32 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     if (item) requestPractice({ module: 'mrc', kind: 'item', title: item.title, itemIds: [itemId] })
   }
   const api: FusionApi = {
+    configureStudy: config => {
+      if(blockedRef.current||mrc.storageBlocked) { setMessage('存储受保护，预算未修改。'); return }
+      const before=current()
+      try {
+        const next={...before,study:before.study?{...before.study,config}:newStudy(config),day:{...before.day,budgetMinutes:netBudget(config)}}
+        validatePlatform(next)
+        if (!before.study && !localStorage.getItem('346-study-before-v1')) localStorage.setItem('346-study-before-v1',JSON.stringify(makeEnvelope(before,mrc.state)))
+        if(persist(tickStudy(next,Date.now(),false))) setMessage('净学习预算已确认。缓冲只扣一次；今日已用时间保留，不会把配置当成掌握证据。')
+      } catch(error) { setMessage(`预算未保存：${error instanceof Error?error.message:String(error)}`) }
+    },
+    declareLearned: ids => {
+      const before=current(); if(!before.study) return
+      const declarations={...before.study.declarations}; for(const id of ids) declarations[id]=Date.now()
+      if(persist({...before,study:{...before.study,declarations}})) setMessage('已标记为学过待验证；没有新增成绩，也没有继承旧题掌握度。')
+    },
+    tick: running => { const before=current(); const next=mrc.state.exam ? tickExam(before,mrc.state.exam.id,Date.now(),running) : tickStudy(before,Date.now(),running); if(next!==before) persist(next) },
+    confirmTime: (minutes,examId) => { const before=current(); const next=examId?confirmExamTime(before,examId,minutes,Date.now()):confirmTime(before,minutes,Date.now()); if(next!==before) persist(next); else setMessage('用时未保存：请输入有效净学习分钟，不能减少已记入前一天的用时。') },
+    patchScoped: patch => {
+      const before=current(),s=before.study?.session; if(!before.study||!s||s.phase==='done') return
+      const next=s.phase==='draft'?{...s,draft:patch.draft??s.draft,paper:patch.paper??s.paper,...(patch.phase==='compare'?{frozenDraft:s.draft,phase:'compare' as const,hinted:patch.hinted??false}: {})}:{...s,outcomes:patch.outcomes??s.outcomes,structure:patch.structure??s.structure,written:patch.written??s.written}
+      persist({...before,study:{...before.study,session:next}})
+    },
+    saveScoped: () => {
+      const before=tickStudy(current(),Date.now(),false),record=saveScoped(before,mrc.state,Date.now()); if(!record||!before.study) return
+      persist(finishTask({...before,study:{...before.study,session:record,records:[...before.study.records,record]}},record.id,record.finishedAt))
+    },
     state: prepared, decision: decide(prepared, mrc.state, renderNow), panel, message,
     blocked: blocked || mrc.storageBlocked, importPlan, open, start, libraryDraft, setLibraryDraft,
     resumeNotice, cancelResume: () => setResumeNotice(null),
@@ -175,7 +217,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
       if (!practiceRequest) return
       const before = current()
       if (before.active?.status === 'in_progress') { setPracticeRequest(null); requestPractice(practiceRequest); return }
-      const next = beginPractice(before, mrc.state, practiceRequest, Date.now())
+      const next = tickStudy(beginPractice(before, mrc.state, practiceRequest, Date.now()), Date.now(), true)
       if (next === before || !next.active) { setMessage('当前范围没有可开始的题目，或追加后超出每日600分钟上限。原安排未改动。'); return }
       if (!persist(next)) return
       if (next.active.module === 'mrc' && !mrc.openModuleRecall(next.active.itemId, next.active.startedAt)) {
@@ -190,6 +232,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     closeDay: () => { const next = current(); if (next.active?.status === 'in_progress') { setMessage('当前训练已暂停，仍可继续；完成后再收工。'); return } if (persist({ ...next, day: { ...next.day, closed: true } })) setPanel('today') },
     reopenDay: () => { const next = current(); if (persist({ ...next, day: { ...next.day, closed: false } })) setPanel('today') },
     setMinutes: (minutes, scope = 'today') => {
+      if (ref.current.study) { setMessage('请用净学习时间设置调整预算，避免绕过英政保护和缓冲。'); return }
       if (!Number.isInteger(minutes) || minutes < 15 || minutes > 600) { setMessage('预算需要是 15–600 分钟的整数，原设置未改动。'); return }
       const next = current(); persist({ ...next, settings: scope === 'daily' ? { ...next.settings, minutes } : next.settings, day: { ...next.day, budgetMinutes: minutes } })
     },
@@ -208,7 +251,7 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     },
     reveal: () => { const next = current(); if (next.session?.phase === 'draft') persist({ ...next, session: { ...next.session, frozenDraft: next.session.draft, phase: 'compare' } }) },
     rate: rating => {
-      const next = current()
+      const next = tickStudy(current(),Date.now(),false)
       if (![1, 2, 3, 4].includes(rating) || !next.session || next.session.phase !== 'compare' || !next.active || next.active.module !== 'general' || next.active.status !== 'in_progress') return
       const resultId = `review-${next.active.id}`
       const now = Date.now()
@@ -294,7 +337,29 @@ export function FusionProvider({ children, recoveryMessage }: { children: ReactN
     },
     dismiss: () => setMessage(null),
   }
-  const override = { ...mrc, stageImport: (raw: string) => { api.stageImport(raw); setPanel('settings') }, confirmImport: api.confirmImport, cancelImport: api.cancelImport, rollback: api.rollback,
+  const examWrite = (exam: typeof mrc.state.exam, starting: boolean) => {
+    if(blockedRef.current||mrc.storageBlocked) { setMessage('本地记录受保护，考试操作未提交。'); return }
+    const before=current(), now=Date.now()
+    if(!before.study) { if(!starting && mrc.state.exam) { mrc.patchExam(exam); return } setMessage('请先确认净学习时间；已有考试草稿仍保留。'); setPanel('today'); return }
+    if(starting && (before.active?.status==='in_progress'||mrc.state.exam)) { setMessage('请先完成当前训练或考试，草稿已保留。'); return }
+    const old=mrc.state.exam
+    const id=exam?.id??old?.id; if(!id) return
+    const prior=before.study.exams.find(e=>e.id===id)
+    const reserved=prior?.reserved??(exam?.itemIds.length??old?.itemIds.length??1)*Math.max(15,(exam?.limitSeconds??old?.limitSeconds??900)/60)
+    if(starting && (before.day.closed || reserved>remaining(before))) { setMessage(`考试预计需${reserved}分钟，今日剩余预算不足；请缩小题数或改为单题完整验收。没有追加预算。`); return }
+    const entry={id,startedAt:prior?.startedAt??now,reserved,charges:prior?.charges??{[studyDate(now)]:reserved},snapshot:exam??old!,...(!exam?{finishedAt:now}:{})}
+    let next={...before,day:{...before.day,examMinutes:(before.day.examMinutes??0)+(prior?0:reserved)},study:{...before.study,exams:[...before.study.exams.filter(e=>e.id!==id),entry]}}
+    if(exam) next=tickExam(next,id,now,starting || before.study.time[id]?.paused===false) as typeof next
+    else if(next.study.time[id]) next={...next,study:{...next.study,time:{...next.study.time,[id]:{...next.study.time[id],paused:true,lastTick:null}}}}
+    const nextMrc={...mrc.state,exam,view:'exam' as const}
+    const result=writeBundle(localStorage,next,nextMrc,false)
+    if(!result.ok||result.needsRecovery) { setMessage(result.error??'考试写入需要恢复，请重新打开。'); if(result.needsRecovery||localStorage.getItem(JOURNAL_KEY)) window.location.reload(); return }
+    ref.current=next;setState(next);mrc.adoptMrcState(nextMrc);setPanel('mrc')
+  }
+  const override = { ...mrc,
+    startExam: (exam: NonNullable<typeof mrc.state.exam>) => examWrite(exam,true),
+    patchExam: (exam: typeof mrc.state.exam) => examWrite(exam,false),
+    startEvening: () => { setMessage('晚间验收使用今日作战台的完整验收任务，手动开始并共用预算。'); setPanel('today') }, stageImport: (raw: string) => { api.stageImport(raw); setPanel('settings') }, confirmImport: api.confirmImport, cancelImport: api.cancelImport, rollback: api.rollback,
     exportJson: () => { if (mrc.storageBlocked) api.exportAll(); else mrc.exportJson() },
     setLibrary: (partial: Parameters<typeof mrc.setLibrary>[0]) => { mrc.setLibrary(partial); setPanel('mrc') },
     setView: (view: typeof mrc.state.view) => { if (view === 'today') setPanel('today'); else { mrc.setView(view); setPanel('mrc') } },

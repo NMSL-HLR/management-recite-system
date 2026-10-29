@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "htmlSha256": "ab22381cef0a39631c88a6c4876fdafc2682ea62a2f9ce64c6ccbc485bc0935b",
+  "htmlBytes": 1832433,
+  "independentSourceZipBuildIdentical": true,
+  "embeddedScriptInspected": true,
+  "externalScriptDependencies": false,
+  "unitTests": 214,
+  "unitTestFiles": 21,
+  "browserScenarios": 20,
+  "browserTransport": "http",
+  "capacityScenarios": 6,
+  "mainItems": 155,
+  "physiologySupplements": 14,
+  "referenceOnlyManagementItems": 22,
+  "originalLearningCoreAndSourceHashesVerified": true,
+  "harmonyOsDeviceTested": false
+}

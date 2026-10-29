@@ -1,3 +1,4 @@
+import { validateStudy } from '../study/validation'
 import { reconcileContent, inspectPreservingImport } from '../state/contentRecovery'
 import { content } from '../content'
 import { validateMrcFields } from './validateMrc'
@@ -17,12 +18,13 @@ const obj = (x: unknown): x is Record<string, unknown> => Boolean(x && typeof x 
 const num = (x: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): x is number => typeof x === 'number' && Number.isFinite(x) && x >= min && x <= max
 export function validatePlatform(value: unknown, trustedGeneral?: GeneralData): FusionState {
   if (!obj(value) || value.platformVersion !== 1) throw new Error('不支持这份全科平台数据版本。')
+  if (value.study !== undefined) validateStudy(value.study)
   const { settings, day, active, session } = value
-  if (!obj(settings) || !num(settings.minutes, 15, 600) || !obj(settings.subjects)) throw new Error('全科预算设置不合法。')
+  if (!obj(settings) || !num(settings.minutes, value.study ? 0 : 15, 600) || !obj(settings.subjects)) throw new Error('全科预算设置不合法。')
   for (const p of Object.values(settings.subjects)) {
     if (!obj(p) || !num(p.weight, 1, 10) || !num(p.newCap, 0, 50) || !Number.isInteger(p.newCap) || !num(p.chapterCap, 0, 20) || !Number.isInteger(p.chapterCap)) throw new Error('科目配额设置不合法。')
   }
-  if (!obj(day) || typeof day.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day.date) || !num(day.budgetMinutes, 15, 600) || typeof day.closed !== 'boolean' || !Array.isArray(day.tasks) || day.tasks.length > 1000 || !obj(day.selectedChapters)) throw new Error('今日计划结构不合法。')
+  if (!obj(day) || typeof day.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day.date) || !num(day.budgetMinutes, value.study ? 0 : 15, 600) || typeof day.closed !== 'boolean' || !Array.isArray(day.tasks) || day.tasks.length > 1000 || !obj(day.selectedChapters)) throw new Error('今日计划结构不合法。')
   if (day.subjects !== undefined && (!Array.isArray(day.subjects) || day.subjects.length < 1 || day.subjects.length > 100 || day.subjects.some(s => typeof s !== 'string' || !s.trim() || s.length > 200) || new Set(day.subjects).size !== day.subjects.length)) throw new Error('今日科目选择不合法。')
   if (day.practice !== undefined) {
     const p = day.practice
@@ -31,7 +33,7 @@ export function validatePlatform(value: unknown, trustedGeneral?: GeneralData): 
   for (const chapters of Object.values(day.selectedChapters)) {
     if (!Array.isArray(chapters) || chapters.some(x => typeof x !== 'string')) throw new Error('章节范围不合法。')
   }
-  const validTask = (t: unknown) => obj(t) && typeof t.id === 'string' && typeof t.itemId === 'string' && typeof t.subject === 'string' && typeof t.title === 'string' && typeof t.chapterKey === 'string' && typeof t.reason === 'string' && typeof t.isNew === 'boolean' && typeof t.module === 'string' && ['mrc', 'general'].includes(t.module) && typeof t.status === 'string' && ['in_progress', 'completed'].includes(t.status) && num(t.estimatedMinutes, 5, 120) && num(t.startedAt) && (t.status !== 'completed' || (typeof t.resultId === 'string' && num(t.completedAt)))
+  const validTask = (t: unknown) => obj(t) && (t.supplement === undefined || typeof t.supplement === 'boolean') && (t.activity === undefined || ['recovery','short','full'].includes(String(t.activity))) && typeof t.id === 'string' && typeof t.itemId === 'string' && typeof t.subject === 'string' && typeof t.title === 'string' && typeof t.chapterKey === 'string' && typeof t.reason === 'string' && typeof t.isNew === 'boolean' && typeof t.module === 'string' && ['mrc', 'general'].includes(t.module) && typeof t.status === 'string' && ['in_progress', 'completed'].includes(t.status) && num(t.estimatedMinutes, 5, 120) && num(t.startedAt) && (t.status !== 'completed' || (typeof t.resultId === 'string' && num(t.completedAt)))
   if (day.tasks.some(t => !validTask(t)) || new Set(day.tasks.map(t => t.id)).size !== day.tasks.length || (active !== null && !validTask(active))) throw new Error('训练任务不合法。')
   if (active !== null && !day.tasks.some(t => obj(active) && Object.keys(t).length === Object.keys(active).length && Object.entries(t).every(([key, v]) => active[key] === v))) throw new Error('当前任务与今日计划不一致。')
   if (day.tasks.filter(t => t.status === 'in_progress').length > 1 || (day.tasks.some(t => t.status === 'in_progress') && (!obj(active) || active.status !== 'in_progress'))) throw new Error('存在冲突的未完成任务。')
@@ -43,7 +45,10 @@ export function validatePlatform(value: unknown, trustedGeneral?: GeneralData): 
     if ((active.status === 'completed') !== (session.phase === 'done')) throw new Error('草稿阶段与任务状态不一致。')
     if (session.phase !== 'draft' && typeof session.frozenDraft !== 'string') throw new Error('揭晓前草稿缺失。')
     if (session.phase === 'done' && ![...general.logs, ...general.logsArchive].some(l => l.id === session.resultId && l.id === active.resultId && l.pointId === active.itemId)) throw new Error('完成任务缺少原始复习日志。')
-  } else if (obj(active) && active.module === 'general') throw new Error('通用任务缺少草稿。')
+  } else if (obj(active) && active.module === 'general' && (!active.activity || active.activity === 'recovery')) throw new Error('通用任务缺少草稿。')
+  if (obj(active) && ['short','full'].includes(String(active.activity)) && (!obj(value.study) || !obj(value.study.session) || value.study.session.taskId !== active.id || (active.status==='completed') !== (value.study.session.phase==='done'))) throw new Error('抽测范围与当前任务不一致。')
+  if (day.examMinutes !== undefined && !num(day.examMinutes)) throw new Error('考试预算不合法。')
+  if (day.tasks.some(t => t.chargedMinutes !== undefined && !num(t.chargedMinutes))) throw new Error('实际用时不合法。')
   return { ...value, general } as unknown as FusionState
 }
 
@@ -94,7 +99,7 @@ export function inspectFusionImport(raw: string, platform: FusionState, mrc: Coa
     if (data.platformVersion !== 1) throw new Error('整包备份版本比程序新或无法识别。')
     const nextMrc = validateMrcSnapshot(data.mrc, mrc)
     const next = retireUnavailableMrc(settleSavedMrc(validatePlatform(data.platform), nextMrc))
-    if (next.active?.module === 'mrc' && next.active.status === 'in_progress' && (!nextMrc.recall || nextMrc.recall.phase === 'done' || nextMrc.recall.itemId !== next.active.itemId || nextMrc.recall.startedAt !== next.active.startedAt)) throw new Error('管理学当前任务与备份草稿不一致。')
+    if (next.active?.module === 'mrc' && (!next.active.activity || next.active.activity === 'recovery') && next.active.status === 'in_progress' && (!nextMrc.recall || nextMrc.recall.phase === 'done' || nextMrc.recall.itemId !== next.active.itemId || nextMrc.recall.startedAt !== next.active.startedAt)) throw new Error('管理学当前任务与备份草稿不一致。')
     if (next.active?.module === 'general' && next.active.status === 'in_progress' && nextMrc.recall && nextMrc.recall.phase !== 'done') throw new Error('备份存在两个同时进行的训练，请先分别恢复。')
     return { platform: next, mrc: nextMrc, kind: '全科整包', summary: `恢复整包：${next.general.points.length} 条旧引擎知识点、${nextMrc.attempts.length} 条管理学训练，以及预算和未完成草稿。旧教材记录保留；不在当前教材的题目、草稿及考试归入管理学待查，不计入新题成绩。将替换当前两份模块数据；导入前自动备份。` }
   }

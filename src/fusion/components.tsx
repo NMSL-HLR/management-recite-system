@@ -73,11 +73,12 @@ export function PracticeDialog() {
         <p>{p.scope.kind === 'chapter' ? `本次范围含 ${p.scope.itemIds.length} 道到期或未训练题，优先到期题。按今日剩余预算逐题进行，结束后不自动换科。` : p.candidate.reason}</p>
         <p className="muted">自主选择不受自动新学和章节配额限制，仍计入同一份今日预算与学习记录。若刚看过原文，建议稍后再练。</p>
         {f.state.day.closed && <p className="warnbox">今天已收工。开始将恢复今日训练，保留已完成记录。</p>}
-        {p.extraMinutes > 0 && <p className="warnbox">剩余预算不足。开始这一题需给今天追加 {p.extraMinutes} 分钟，总预算变为 {p.budgetMinutes} 分钟；明天默认预算不变。</p>}
+        {p.extraMinutes > 0 && f.state.study && <p className="warnbox">这道题装不进剩余预算，不能开始；不会自动追加时间。</p>}
+        {p.extraMinutes > 0 && !f.state.study && <p className="warnbox">剩余预算不足。开始这一题需给今天追加 {p.extraMinutes} 分钟，总预算变为 {p.budgetMinutes} 分钟；明天默认预算不变。</p>}
         {p.budgetMinutes > 600 && <p className="warnbox">超过每日600分钟上限，请休息后明天再练。</p>}
       </> : <p>本范围没有到期或未训练的可练题，参考资料和提示骨架不派发。想提前复习时，可打开某一道可训练题，选择“练这道题”。</p>}
       {f.message && <p role="status">{f.message}</p>}
-      <div className="actions"><button autoFocus className="btn" onClick={f.cancelPractice}>暂不开始</button>{p.candidate && <button className="btn primary" disabled={f.blocked || p.budgetMinutes > 600} onClick={f.confirmPractice}>{p.extraMinutes > 0 ? `追加${p.extraMinutes}分钟并开始` : f.state.day.closed ? '恢复今日并开始' : '确认开始练习'}</button>}</div>
+      <div className="actions"><button autoFocus className="btn" onClick={f.cancelPractice}>暂不开始</button>{p.candidate && <button className="btn primary" disabled={f.blocked || p.budgetMinutes > 600 || Boolean(f.state.study && p.extraMinutes>0)} onClick={f.confirmPractice}>{p.extraMinutes > 0 ? `追加${p.extraMinutes}分钟并开始` : f.state.day.closed ? '恢复今日并开始' : '确认开始练习'}</button>}</div>
     </>}
   </dialog>
 }

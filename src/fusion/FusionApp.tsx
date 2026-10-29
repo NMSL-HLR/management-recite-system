@@ -1,3 +1,4 @@
+import { ScopedTraining, StudyTimer } from '../study/Views'
 import { useEffect } from 'react'
 import { useApp } from '../state/store'
 import { Archive } from '../views/Archive'
@@ -24,7 +25,7 @@ export function FusionApp() {
   const f = useFusion()
   const app = useApp()
   const theme = useMemoryTheme()
-  const activePanel = f.panel === 'general' ? 'today' : f.panel === 'mrc'
+  const activePanel = ['general','scoped'].includes(f.panel) ? 'today' : f.panel === 'mrc'
     ? app.state.view === 'library' ? 'library' : ['archive', 'mistakes'].includes(app.state.view) ? 'records' : ['settings', 'method', 'exam'].includes(app.state.view) ? 'settings' : 'today'
     : f.panel
   const themeButton = <button className="btn theme-switch" onClick={theme.cycle} aria-label={`当前${SKINS[theme.skin].label}，切换到${SKINS[SKINS[theme.skin].next].label}`}><Icon name="palette" /><span>{SKINS[theme.skin].label}</span></button>
@@ -65,6 +66,8 @@ export function FusionApp() {
       {app.warning && <aside className="warnbox banner" role="alert"><p>{app.warning}</p><button className="btn" onClick={app.dismissWarning}>知道了</button></aside>}
       {f.message && <aside className="warnbox banner" role={/失败|冲突|无法|损坏|错误|受保护/.test(f.message) ? 'alert' : 'status'}><p>{f.message}</p><button className="btn" onClick={f.dismiss}>知道了</button></aside>}
       </div>
+      <StudyTimer />
+      {f.panel === 'scoped' && <ScopedTraining />}
       {f.panel === 'today' && <FusionToday />}
       {f.panel === 'library' && <FusionLibrary />}
       {f.panel === 'records' && <FusionRecords />}

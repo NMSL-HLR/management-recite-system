@@ -15,7 +15,7 @@ function walk(path) {
     else if (['.ts','.tsx','.css','.json','.md','.mjs','.py','.html'].includes(extname(entry.name))) files.push(relative(root,full).split(/[/\\]/).join('/'))
   }
 }
-for (const dir of ['src','sources','frozen','scripts','tests','reports','docs','manual-review']) walk(join(root,dir))
+for (const dir of ['src','sources','frozen','scripts','tests','reports','docs']) walk(join(root,dir))
 const entries = Object.fromEntries([...new Set(files)].sort().map(name=>[name,new Uint8Array(readFileSync(join(root,name)))]))
 assert.ok(!Object.keys(entries).some(name=>name==='dist/index.html'||/\.(zip|png|log)$/.test(name)))
 const zip = zipSync(entries,{level:6}), restored = unzipSync(zip)
@@ -29,7 +29,10 @@ const html = readFileSync(join(root, '346_Fusion_Alpha.html'))
 const ready = {
   '346_Fusion_Alpha.html': new Uint8Array(html),
   '使用说明.md': new Uint8Array(readFileSync(join(root, 'docs/usage.md'))),
-  '发布验收.md': new Uint8Array(readFileSync(join(root, 'reports/three-subjects-20261029-release.md'))),
+  '发布验收.md': new Uint8Array(readFileSync(join(root, 'reports/study-coach-release.md'))),
+  '每日使用SOP.md': new Uint8Array(readFileSync(join(root, 'docs/daily-study-sop.md'))),
+  '容量实验.json': new Uint8Array(readFileSync(join(root, 'reports/study-capacity.json'))),
+  '本轮浏览器检查.json': new Uint8Array(readFileSync(join(root, 'reports/study-browser-check.json'))),
   'SHA256.txt': new TextEncoder().encode(`${createHash('sha256').update(html).digest('hex')}  346_Fusion_Alpha.html\n`),
 }
 const readyZip = zipSync(ready, { level: 6 }), roundtrip = unzipSync(readyZip)

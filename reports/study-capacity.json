@@ -1,0 +1,303 @@
+{
+  "hypothetical": true,
+  "notPersonalMemoryPrediction": true,
+  "assumptions": "155正文＋14补充；确认净时间为5/60/120/240/180分钟，仅容量情景不是用户事实；10%单一缓冲；整题基准15分钟、短测生理12/其他8分钟；失败耗时为基准1.4倍，其他为1倍，实际用时不跟随模型估时递增；伪随机固定种子；未模拟知识本身。所有模拟记录只存在测试内存。",
+  "uniformIntervalLoad": [
+    {
+      "intervalDays": 7,
+      "questions": 155,
+      "minutesPerQuestion": 15,
+      "averageMinutesPerDay": 333
+    },
+    {
+      "intervalDays": 4,
+      "questions": 155,
+      "minutesPerQuestion": 15,
+      "averageMinutesPerDay": 582
+    },
+    {
+      "intervalDays": 2,
+      "questions": 155,
+      "minutesPerQuestion": 15,
+      "averageMinutesPerDay": 1163
+    }
+  ],
+  "scenarios": [
+    {
+      "minutes": 5,
+      "fail": 0.3,
+      "days": 51,
+      "overdue": false,
+      "netBudget": 4,
+      "tasks": 0,
+      "actualMinutes": 0,
+      "daysStopped": 51,
+      "overrunStops": 0,
+      "uncovered": 155,
+      "repair": 0,
+      "unverified": 155,
+      "subjectRows": [
+        {
+          "subject": "体育管理学",
+          "total": 56,
+          "uncovered": 56,
+          "declared": 0,
+          "verified": 0,
+          "repair": 0,
+          "scopedIndependent": 0,
+          "unverified": 56
+        },
+        {
+          "subject": "运动生理学",
+          "total": 59,
+          "uncovered": 59,
+          "declared": 0,
+          "verified": 0,
+          "repair": 0,
+          "scopedIndependent": 0,
+          "unverified": 59
+        },
+        {
+          "subject": "体育概论",
+          "total": 40,
+          "uncovered": 40,
+          "declared": 0,
+          "verified": 0,
+          "repair": 0,
+          "scopedIndependent": 0,
+          "unverified": 40
+        }
+      ]
+    },
+    {
+      "minutes": 60,
+      "fail": 0.3,
+      "days": 51,
+      "overdue": false,
+      "netBudget": 54,
+      "tasks": 160,
+      "actualMinutes": 2604,
+      "daysStopped": 51,
+      "overrunStops": 11,
+      "uncovered": 111,
+      "repair": 20,
+      "unverified": 143,
+      "subjectRows": [
+        {
+          "subject": "体育管理学",
+          "total": 56,
+          "uncovered": 52,
+          "declared": 0,
+          "verified": 1,
+          "repair": 0,
+          "scopedIndependent": 4,
+          "unverified": 55
+        },
+        {
+          "subject": "运动生理学",
+          "total": 59,
+          "uncovered": 40,
+          "declared": 0,
+          "verified": 9,
+          "repair": 5,
+          "scopedIndependent": 15,
+          "unverified": 50
+        },
+        {
+          "subject": "体育概论",
+          "total": 40,
+          "uncovered": 19,
+          "declared": 0,
+          "verified": 2,
+          "repair": 15,
+          "scopedIndependent": 7,
+          "unverified": 38
+        }
+      ]
+    },
+    {
+      "minutes": 120,
+      "fail": 0.3,
+      "days": 51,
+      "overdue": false,
+      "netBudget": 108,
+      "tasks": 333,
+      "actualMinutes": 5352,
+      "daysStopped": 51,
+      "overrunStops": 6,
+      "uncovered": 61,
+      "repair": 31,
+      "unverified": 132,
+      "subjectRows": [
+        {
+          "subject": "体育管理学",
+          "total": 56,
+          "uncovered": 22,
+          "declared": 0,
+          "verified": 7,
+          "repair": 6,
+          "scopedIndependent": 20,
+          "unverified": 49
+        },
+        {
+          "subject": "运动生理学",
+          "total": 59,
+          "uncovered": 24,
+          "declared": 0,
+          "verified": 14,
+          "repair": 12,
+          "scopedIndependent": 24,
+          "unverified": 45
+        },
+        {
+          "subject": "体育概论",
+          "total": 40,
+          "uncovered": 15,
+          "declared": 0,
+          "verified": 2,
+          "repair": 13,
+          "scopedIndependent": 12,
+          "unverified": 38
+        }
+      ]
+    },
+    {
+      "minutes": 240,
+      "fail": 0.3,
+      "days": 51,
+      "overdue": false,
+      "netBudget": 216,
+      "tasks": 683,
+      "actualMinutes": 10841,
+      "daysStopped": 51,
+      "overrunStops": 7,
+      "uncovered": 0,
+      "repair": 56,
+      "unverified": 141,
+      "subjectRows": [
+        {
+          "subject": "体育管理学",
+          "total": 56,
+          "uncovered": 0,
+          "declared": 0,
+          "verified": 1,
+          "repair": 9,
+          "scopedIndependent": 30,
+          "unverified": 55
+        },
+        {
+          "subject": "运动生理学",
+          "total": 59,
+          "uncovered": 0,
+          "declared": 0,
+          "verified": 13,
+          "repair": 23,
+          "scopedIndependent": 40,
+          "unverified": 46
+        },
+        {
+          "subject": "体育概论",
+          "total": 40,
+          "uncovered": 0,
+          "declared": 0,
+          "verified": 0,
+          "repair": 24,
+          "scopedIndependent": 16,
+          "unverified": 40
+        }
+      ]
+    },
+    {
+      "minutes": 120,
+      "fail": 0.7,
+      "days": 51,
+      "overdue": true,
+      "netBudget": 108,
+      "tasks": 284,
+      "actualMinutes": 5352,
+      "daysStopped": 51,
+      "overrunStops": 7,
+      "uncovered": 4,
+      "repair": 43,
+      "unverified": 154,
+      "subjectRows": [
+        {
+          "subject": "体育管理学",
+          "total": 56,
+          "uncovered": 4,
+          "declared": 0,
+          "verified": 0,
+          "repair": 36,
+          "scopedIndependent": 3,
+          "unverified": 56
+        },
+        {
+          "subject": "运动生理学",
+          "total": 59,
+          "uncovered": 0,
+          "declared": 0,
+          "verified": 0,
+          "repair": 6,
+          "scopedIndependent": 33,
+          "unverified": 59
+        },
+        {
+          "subject": "体育概论",
+          "total": 40,
+          "uncovered": 0,
+          "declared": 0,
+          "verified": 1,
+          "repair": 1,
+          "scopedIndependent": 6,
+          "unverified": 39
+        }
+      ]
+    },
+    {
+      "minutes": 180,
+      "fail": 0.4,
+      "days": 3,
+      "overdue": true,
+      "netBudget": 162,
+      "tasks": 28,
+      "actualMinutes": 492,
+      "daysStopped": 3,
+      "overrunStops": 2,
+      "uncovered": 50,
+      "repair": 12,
+      "unverified": 143,
+      "subjectRows": [
+        {
+          "subject": "体育管理学",
+          "total": 56,
+          "uncovered": 50,
+          "declared": 0,
+          "verified": 0,
+          "repair": 2,
+          "scopedIndependent": 0,
+          "unverified": 56
+        },
+        {
+          "subject": "运动生理学",
+          "total": 59,
+          "uncovered": 0,
+          "declared": 0,
+          "verified": 12,
+          "repair": 9,
+          "scopedIndependent": 21,
+          "unverified": 47
+        },
+        {
+          "subject": "体育概论",
+          "total": 40,
+          "uncovered": 0,
+          "declared": 0,
+          "verified": 0,
+          "repair": 1,
+          "scopedIndependent": 1,
+          "unverified": 40
+        }
+      ]
+    }
+  ]
+}

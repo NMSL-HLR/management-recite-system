@@ -1,3 +1,4 @@
+import { BudgetSetup } from '../../study/Views'
 import { useRef, useState } from 'react'
 import { SKINS, type Skin, type useMemoryTheme } from '../theme'
 import { localTime } from '../../browser/format'
@@ -22,8 +23,8 @@ export function FusionSettingsView({ theme }: { theme: ReturnType<typeof useMemo
   }
   const subjects = [...new Set(['体育管理学', '运动生理学', '体育概论', ...f.state.general.points.map(p => p.subject).filter(s => !isLegacyManagement(s))])]
   return <div className="stack"><h1>设置与备份</h1>
-    <section className="card"><h2>全科安排</h2><label className="field">每日默认预算（同时应用到今天）<BudgetSelect label="每日默认预算" value={f.state.settings.minutes} onChange={n => f.setMinutes(n, 'daily')} /></label><p className="muted">今天的预算是 {f.state.day.budgetMinutes} 分钟。临时调整可在今日作战台进行，不影响明天。</p>
-      <p className="muted">到期复习优先；同级任务按科目权重与当天已分配时间安排。新学配额按开始的任务累计。章节范围只限制新学，不挡住复习。</p>
+    <BudgetSetup/><section className="card"><h2>全科安排</h2>{!f.state.study && <label className="field">每日默认预算（同时应用到今天）<BudgetSelect label="每日默认预算" value={f.state.settings.minutes} onChange={n => f.setMinutes(n, 'daily')} /></label>}<p className="muted">今天的预算是 {f.state.day.budgetMinutes} 分钟。临时调整可在今日作战台进行，不影响明天。</p>
+      <p className="muted">启用教练后先保护有限新增覆盖份额，再按到期、重要性及科目已分配时间安排；不会无限增加新题。新学配额按开始的任务累计。章节范围只限制新学，不挡住复习。</p>
       <div className="policy-grid">{subjects.map(subject => { const p = policyFor(f.state, subject); return <fieldset key={subject}><legend>{subject}</legend><label className="field">时间权重<PolicyField label={`${subject}权重`} integer={false} min={1} max={10} value={p.weight} onCommit={value => f.setPolicy(subject, { weight: value })} /></label><label className="field">每日新学上限<PolicyField label={`${subject}新学上限`} min={0} max={50} value={p.newCap} onCommit={value => f.setPolicy(subject, { newCap: value })} /></label><label className="field">新学章节上限<PolicyField label={`${subject}章节上限`} min={0} max={20} value={p.chapterCap} onCommit={value => f.setPolicy(subject, { chapterCap: value })} /></label></fieldset> })}</div>
       <p className="muted">输入后按 Enter 或离开输入框保存，Esc 撤回当前输入。空值和超出范围的值不会覆盖原设置。</p>
       <p className="muted">新学上限 0 表示暂停新学；章节上限 0 表示不限制章节。修改配额会重新选择该科今日章节，已占用预算不会清零。</p>

@@ -1,3 +1,4 @@
+import type { Activity, StudyState } from '../study/types'
 import type { KnowledgePoint, ReviewLog, Rating } from '../general/types'
 
 export const MANAGEMENT = '体育管理学'
@@ -33,6 +34,10 @@ export interface FusionSettings {
   subjects: Record<string, SubjectPolicy>
 }
 export interface TrainingTask {
+  supplement?: boolean
+  activity?: Activity
+  priority?: number
+  chargedMinutes?: number
   id: string
   module: 'mrc' | 'general'
   itemId: string
@@ -48,6 +53,7 @@ export interface TrainingTask {
   completedAt?: number
 }
 export interface FusionDay {
+  examMinutes?: number
   date: string
   budgetMinutes: number
   closed: boolean
@@ -75,6 +81,7 @@ export interface GeneralSession {
   resultId?: string
 }
 export interface FusionState {
+  study?: StudyState
   platformVersion: 1
   unavailableTasks?: TrainingTask[]
   general: GeneralData
@@ -93,4 +100,4 @@ export type FusionDecision =
   | { kind: 'wait'; dueAt: number; pending: number }
   | { kind: 'done'; reason: 'closed' | 'budget' | 'quota' | 'empty' | 'practice'; pending: number }
 
-export type Panel = 'today' | 'mrc' | 'general' | 'library' | 'records' | 'settings'
+export type Panel = 'today' | 'mrc' | 'general' | 'library' | 'records' | 'settings' | 'scoped'

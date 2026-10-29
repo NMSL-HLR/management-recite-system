@@ -71,7 +71,7 @@ export function Exam() {
         <button className="btn ghost" type="button" onClick={() => setEnding(true)}>结束</button>
       </div>
       {downloadError && <p className="warnbox" role="alert">{downloadError}</p>}
-      {ending && <section className="warnbox" role="region" aria-label="结束考试确认"><h2>结束并清除本次考试？</h2><p>本次作答不会自动成为学习档案。请先导出要保留的作答；取消可继续当前考试。</p><div className="actions"><button className="btn" onClick={() => setEnding(false)}>继续考试</button><button className="btn" onClick={exportAnswers}>先导出本次作答</button><button className="btn danger" onClick={() => { setEnding(false); app.patchExam(null) }}>确认结束并清除</button></div></section>}
+      {ending && <section className="warnbox" role="region" aria-label="结束考试确认"><h2>结束并清除本次考试？</h2><p>本次作答不会自动成为掌握证据。融合版会保留结束快照在全科备份中；也可单独导出，取消可继续当前考试。</p><div className="actions"><button className="btn" onClick={() => setEnding(false)}>继续考试</button><button className="btn" onClick={exportAnswers}>先导出本次作答</button><button className="btn danger" onClick={() => { setEnding(false); app.patchExam(null) }}>确认结束并清除</button></div></section>}
       {answer.revealed && <AnswerReview key={`${exam.id}:${item.id}`} item={item} draft={answer.text} />}
       {answer.revealed ? (
         <div className="compare">
@@ -85,6 +85,7 @@ export function Exam() {
 
 function ExamSetup() {
   const app = useApp()
+  const [count, setCount] = useState(1)
   const [minutes, setMinutes] = useState(String(app.state.settings.day.writingMinutes))
   const validMinutes = minutes.trim() !== '' && Number.isFinite(Number(minutes)) && Number(minutes) >= 1
   const pool = useMemo(() => content.items, [])
@@ -97,7 +98,7 @@ function ExamSetup() {
       shuffled[i] = shuffled[j]
       shuffled[j] = tmp
     }
-    const picked = shuffled.slice(0, 8)
+    const picked = shuffled.slice(0, count)
     const now = Date.now()
     const exam = createExamState({
       id: `exam-${now}`,
@@ -119,7 +120,8 @@ function ExamSetup() {
   return (
     <div className="stack">
       <h1>闭卷考试</h1>
-      <p>题目跨章节打乱。限时写作只保留原文对照，不生成分数，也不生成主动提取成绩；不计入全科今日预算。</p>
+      <p>题目跨章节打乱。限时写作只保留原文对照，不生成分数，也不生成主动提取成绩；融合版使用同一份今日预算；预算不足不能开始。结束时保留考试原稿存档，但不自动当作整题验收通过。</p>
+      <label className="field">题数<input aria-label="考试题数" type="number" min="1" max="8" value={count} onChange={e=>setCount(Math.max(1,Math.min(8,Number(e.target.value)||1)))}/></label>
       <label className="field">每题分钟
         <input type="number" min={1} value={minutes} aria-invalid={!validMinutes} onChange={(event) => setMinutes(event.target.value)} />
       </label>

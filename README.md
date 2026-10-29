@@ -1,3 +1,18 @@
+# 346 证据教练版（2026-10-29）
+
+当前分支 `feat/evidence-budget-coach`。先确认净学习时间，再按恢复/新学、局部短复习、完整延迟验收推进。旧成绩与草稿保留，局部测试不冒充整题掌握。三科正文155题，另有14组生理补充。
+
+- [每日SOP](docs/daily-study-sop.md)
+- [本版改动与兼容说明](reports/study-coach-release.md)
+- [实际容量实验](reports/study-capacity.json)
+- [本轮浏览器回归](reports/study-browser-check.json)
+- 下载 `346_Fusion_Ready.zip` 解压打开HTML；更新前先从旧版导出全科整包。
+- `npm ci && npm run build` 重建单文件；`npm test` 重跑单元与容量测试；`npm run package-release` 包含本轮浏览器回归并打包（需Chromium）。历史浏览器脚本保留，但旧版的首次启动/预算/考试预期不适用于当前教练流程。
+
+以下为前版资料替换记录，测试数字属于前版，不作为本版验收结果。
+
+---
+
 # 346 全科备考教练 · 三科资料更新版（2026-10-29）
 
 离线单文件考研训练程序，沿用 346 记忆引擎的三主题界面。管理学使用 MRC 主动提取与证据链，其他科目使用原通用 FSRS 模块。

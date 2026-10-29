@@ -1,3 +1,4 @@
+import { adaptCandidates, makeSession, netBudget, studyDate, rubric, sourceFingerprint, isSupplement, matchingRecords, key, estimate } from '../study/coach'
 import { buildCandidates, nextWaitingDueAt, estimatedMinutes, trainingItems, latestAttempts } from '../coach/candidates'
 import { coachInput } from '../coach/recallAdapter'
 import { localDate, validCoachState } from '../coach/planner'
@@ -13,7 +14,7 @@ export function defaultFusion(now: number): FusionState {
   const settings: FusionSettings = { minutes: 60, subjects: {
     [MANAGEMENT]: { weight: 3, newCap: 2, chapterCap: 2 },
     '运动生理学': { weight: 2, newCap: 3, chapterCap: 3 },
-    '体育概论': { weight: 1, newCap: 3, chapterCap: 3 },
+    '体育概论': { weight: 1, newCap: 2, chapterCap: 3 },
   } }
   return { platformVersion: 1, general: emptyGeneral(), settings,
     day: { date: localDate(now), budgetMinutes: settings.minutes, closed: false, tasks: [], selectedChapters: {} }, active: null, session: null }
@@ -42,16 +43,18 @@ export function policyFor(state: FusionState, subject: string): SubjectPolicy {
   return Object.hasOwn(state.settings.subjects, subject) ? state.settings.subjects[subject] : DEFAULT_POLICY
 }
 export function spent(day: FusionDay): number {
-  return day.tasks.reduce((sum, task) => sum + task.estimatedMinutes, 0)
+  return day.tasks.reduce((sum, task) => sum + (task.chargedMinutes ?? task.estimatedMinutes), day.examMinutes ?? 0)
 }
 export function remaining(state: FusionState): number {
   return Math.max(0, state.day.budgetMinutes - spent(state.day))
 }
 export function rollDay(state: FusionState, now: number): FusionState {
-  if (state.day.date === localDate(now)) return state
-  const carry = state.active?.status === 'in_progress' ? [state.active] : []
-  return { ...state, active: carry.length ? state.active : null, session: carry.length ? state.session : null,
-    day: { date: localDate(now), budgetMinutes: state.settings.minutes, closed: false, tasks: carry, selectedChapters: {} } }
+  const date = state.study ? studyDate(now) : localDate(now)
+  if (state.day.date === date) return state
+  const carried = state.active && state.study ? { ...state.active, chargedMinutes: Math.max(0, state.active.estimatedMinutes - (state.study.time[state.active.id]?.seconds ?? 0) / 60) } : state.active
+  const carry = carried?.status === 'in_progress' ? [carried] : []
+  return { ...state, active: carry.length ? carried : null, session: carry.length ? state.session : null,
+    day: { date, budgetMinutes: state.study ? netBudget(state.study.config) : state.settings.minutes, closed: false, tasks: carry, selectedChapters: {} } }
 }
 export function chapterKey(point: GeneralPoint): string {
   return `${point.subject}::${point.quotaChapterOverride?.trim() || point.title.match(/第\s*[一二两三四五六七八九十百零\d]+\s*章/)?.[0].replace(/\s/g, '') || `条目:${point.id}`}`
@@ -69,11 +72,11 @@ export function allCandidates(state: FusionState, mrc: CoachPersisted, now: numb
   }))
   const general = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && generalReadyAt(p) <= now)
     .sort((a, b) => a.dueDate - b.dueDate || compareGeneralPoints(a, b))
-    .map((p): Candidate => ({ module: 'general', itemId: p.id, subject: p.subject, title: p.title, chapterKey: chapterKey(p),
+    .map((p): Candidate => ({ module: 'general', itemId: p.id, subject: p.subject, supplement:isSupplement(p), title: p.title, chapterKey: chapterKey(p),
       isNew: p.totalReviews === 0, reason: p.totalReviews === 0 ? '这条知识点尚未训练，先闭卷输出，再核对原文。' : '复习时间已到，先检查能否独立回忆。',
       estimatedMinutes: p.content.length >= 600 || (p.checklist?.length ?? 0) >= 5 ? 15 : 10,
       dueAt: generalReadyAt(p), tier: p.totalReviews === 0 ? 1 : 0 }))
-  return [...management, ...general]
+  return adaptCandidates(state, mrc, [...management, ...general], now)
 }
 /** Lock each day's new chapter scope. Reviews always remain eligible within the hard time budget. */
 export function lockChapters(state: FusionState, mrc: CoachPersisted, now: number): FusionState {
@@ -112,7 +115,7 @@ export function retireUnavailableMrc(state: FusionState): FusionState {
 }
 
 export function settleSavedMrc(state: FusionState, mrc: CoachPersisted): FusionState {
-  if (state.active?.module === 'mrc' && state.active.status === 'in_progress') {
+  if (!state.active?.activity || state.active.activity === 'recovery') if (state.active?.module === 'mrc' && state.active.status === 'in_progress') {
     const result = mrc.attempts.find(a => a.itemId === state.active!.itemId && a.startedAt === state.active!.startedAt)
     if (result) return finishTask(state, result.id, result.finishedAt)
   }
@@ -125,6 +128,7 @@ export function reconcileMrc(state: FusionState, mrc: CoachPersisted, now: numbe
   if (settled !== state) return rollDay(settled, now)
   state = retireUnavailableMrc(state)
   let next = rollDay(state, now)
+  if (next.active?.activity && next.active.activity !== 'recovery' && next.active.status === 'in_progress') return next
   const recall = mrc.recall
   if (!recall || recall.phase === 'done') return next
   if (next.active?.module === 'mrc' && next.active.itemId === recall.itemId && next.active.startedAt === recall.startedAt) return next
@@ -142,7 +146,8 @@ export function reconcileMrc(state: FusionState, mrc: CoachPersisted, now: numbe
 export function eligible(state: FusionState, candidate: Candidate): boolean {
   if (!candidate.isNew) return true
   const policy = policyFor(state, candidate.subject)
-  const count = state.day.tasks.filter(t => t.subject === candidate.subject && t.isNew).length
+  if(candidate.supplement) return policy.newCap>0 && state.day.tasks.filter(t=>t.subject===candidate.subject&&t.isNew&&t.supplement).length<1
+  const count = state.day.tasks.filter(t => t.subject === candidate.subject && t.isNew && !t.supplement).length
   if (count >= policy.newCap) return false
   if (policy.chapterCap === 0) return true
   return (state.day.selectedChapters[candidate.subject] ?? []).includes(candidate.chapterKey)
@@ -159,14 +164,22 @@ export function decide(state: FusionState, mrc: CoachPersisted, now: number): Fu
     return candidate ? { kind: 'next', candidate } : { kind: 'done', reason: 'budget', pending: practice.filter(c => !c.isNew).length }
   }
   if (remaining(state) < 5) return { kind: 'done', reason: 'budget', pending }
-  const fits = candidates.filter(c => eligible(state, c) && c.estimatedMinutes <= remaining(state))
+  let fits = candidates.filter(c => eligible(state, c) && c.estimatedMinutes <= remaining(state))
+  if (state.study) {
+    const newUsed = state.day.tasks.filter(t=>t.isNew).reduce((n,t)=>n+(t.chargedMinutes??t.estimatedMinutes),0)
+    const newRoom = state.day.budgetMinutes * (candidates.some(c=>!c.isNew) ? state.study.config.newShare : 1)
+    const newFits = fits.filter(c=>c.isNew && newUsed+c.estimatedMinutes<=newRoom)
+    // Reserve a bounded share for coverage, but never create new work beyond this share.
+    fits = newFits.length ? newFits : fits.filter(c=>!c.isNew || newUsed+c.estimatedMinutes<=newRoom)
+  }
   const subjectLoad = (c: Candidate) => state.day.tasks.filter(t => t.subject === c.subject).reduce((s, t) => s + t.estimatedMinutes, 0) / policyFor(state, c.subject).weight
-  fits.sort((a, b) => a.tier - b.tier || subjectLoad(a) - subjectLoad(b) || policyFor(state, b.subject).weight - policyFor(state, a.subject).weight || a.dueAt - b.dueAt)
+  fits.sort((a, b) => a.tier - b.tier || (b.priority??0)-(a.priority??0) || subjectLoad(a) - subjectLoad(b) || policyFor(state, b.subject).weight - policyFor(state, a.subject).weight || a.dueAt - b.dueAt)
   if (fits.length) return { kind: 'next', candidate: fits[0] }
   if (candidates.some(c => eligible(state, c))) return { kind: 'done', reason: 'budget', pending }
   const mrcDue = subjectAllowed(state, MANAGEMENT) ? nextWaitingDueAt(coachInput(mrc), now) : null
   const future = state.general.points.filter(p => !isLegacyManagement(p.subject) && !p.trainingBlocked && subjectAllowed(state, p.subject) && generalReadyAt(p) > now).map(generalReadyAt)
   if (mrcDue !== null) future.push(mrcDue)
+  if (state.study) for (const r of state.study.records) if (r.nextAt>now) future.push(r.nextAt)
   if (future.length) return { kind: 'wait', dueAt: Math.min(...future), pending }
   return { kind: 'done', reason: candidates.length ? 'quota' : 'empty', pending }
 }
@@ -176,7 +189,8 @@ export function beginTask(state: FusionState, candidate: Candidate, now: number)
   if (state.day.closed || (!explicit && (!subjectAllowed(state, candidate.subject) || !eligible(state, candidate))) || candidate.estimatedMinutes > remaining(state)) return state
   const task: TrainingTask = { ...candidate, id: `fusion-${candidate.module}-${candidate.itemId}-${now}`, status: 'in_progress', startedAt: now }
   return { ...state, active: task, day: { ...state.day, tasks: [...state.day.tasks, task] },
-    session: candidate.module === 'general' ? { taskId: task.id, itemId: task.itemId, phase: 'draft', draft: '', frozenDraft: null, checked: [], rating: null } : null }
+    ...(state.study && candidate.activity && candidate.activity !== 'recovery' ? { study: { ...state.study, session: makeSession(state,task), sources: {...state.study.sources,[sourceFingerprint(state,task.module,task.itemId)]:rubric(state,task.module,task.itemId)} } } : {}),
+    session: candidate.module === 'general' && (!candidate.activity || candidate.activity === 'recovery') ? { taskId: task.id, itemId: task.itemId, phase: 'draft', draft: '', frozenDraft: null, checked: [], rating: null } : null }
 }
 export function finishTask(state: FusionState, resultId: string, now: number): FusionState {
   if (!state.active || state.active.status === 'completed') return state
@@ -208,14 +222,17 @@ export function libraryCandidates(state: FusionState, mrc: CoachPersisted, now: 
       isNew: !attempt, dueAt: attempt?.dueAt ?? now, tier: attempt ? 0 : 1, estimatedMinutes: estimatedMinutes(item), reason: '' }
   })
   const general = state.general.points.filter(p => !p.trainingBlocked && !isLegacyManagement(p.subject)).map((p): Candidate => ({
-    module: 'general', itemId: p.id, title: p.title, subject: p.subject, chapterKey: chapterKey(p), isNew: p.totalReviews === 0,
+    module: 'general', itemId: p.id, title: p.title, supplement:isSupplement(p), subject: p.subject, chapterKey: chapterKey(p), isNew: p.totalReviews === 0,
     dueAt: generalReadyAt(p), tier: p.totalReviews ? 0 : 1, estimatedMinutes: p.content.length >= 600 || (p.checklist?.length ?? 0) >= 5 ? 15 : 10, reason: '',
   }))
-  return [...management, ...general].map(c => ({ ...c, reason: c.isNew ? '你自主选择的未训练题，先闭卷输出，再按原流程核对。' : c.dueAt > now ? '你主动提前练习这道题；保存后仍按原引擎安排下次复测。' : '你选择的范围内，这道题已到复测时间。' }))
+  return [...management, ...general].map(c => {
+    const isNew=c.isNew && !state.study?.declarations[key(c.module,c.itemId)] && !matchingRecords(state,c.module,c.itemId).length
+    return {...c,isNew,estimatedMinutes:estimate(state,c.subject,'recovery',c.estimatedMinutes),reason:isNew?'你自主选择的未训练题，先闭卷输出，再按原流程核对。':c.dueAt>now?'你主动提前练习这道题；保存后仍按原引擎安排下次复测。':'你选择的范围已有接触记录，本次按原流程进行整题恢复。'}
+  })
 }
 export function practiceCandidates(state: FusionState, mrc: CoachPersisted, scope: PracticeScope, now: number): Candidate[] {
   const ids = new Set(scope.itemIds)
-  return libraryCandidates(state, mrc, now).filter(c => c.module === scope.module && ids.has(c.itemId) && (scope.kind === 'item' || c.isNew || c.dueAt <= now))
+  return libraryCandidates(state, mrc, now).map(c=>state.study ? {...c,activity:'recovery' as const} : c).filter(c => c.module === scope.module && ids.has(c.itemId) && (!state.study || !state.day.tasks.some(t=>t.module===c.module&&t.itemId===c.itemId)) && (scope.kind === 'item' || c.isNew || c.dueAt <= now))
     .sort((a, b) => Number(a.isNew) - Number(b.isNew) || a.dueAt - b.dueAt || scope.itemIds.indexOf(a.itemId) - scope.itemIds.indexOf(b.itemId))
 }
 export function preparePractice(state: FusionState, mrc: CoachPersisted, request: PracticeScope, now: number) {
@@ -223,12 +240,12 @@ export function preparePractice(state: FusionState, mrc: CoachPersisted, request
   const scope: PracticeScope = { ...request, itemIds: candidates.map(c => c.itemId) }
   const candidate = candidates.find(c => c.estimatedMinutes <= remaining(state)) ?? candidates[0]
   const extraMinutes = candidate ? Math.max(0, spent(state.day) + candidate.estimatedMinutes - state.day.budgetMinutes) : 0
-  return { scope, candidate, extraMinutes, budgetMinutes: state.day.budgetMinutes + extraMinutes }
+  return { scope, candidate, extraMinutes, budgetMinutes: state.study ? state.day.budgetMinutes : state.day.budgetMinutes + extraMinutes }
 }
 /** The caller must explicitly confirm the shown budget/reopen changes. No scheduling evidence is written. */
 export function beginPractice(state: FusionState, mrc: CoachPersisted, request: PracticeScope, now: number): FusionState {
   if (state.active?.status === 'in_progress') return state
   const preview = preparePractice(state, mrc, request, now)
-  if (!preview.candidate || preview.budgetMinutes > 600) return state
+  if (!preview.candidate || preview.budgetMinutes > 600 || (state.study && preview.extraMinutes > 0)) return state
   return beginTask({ ...state, day: { ...state.day, closed: false, budgetMinutes: preview.budgetMinutes, practice: preview.scope } }, preview.candidate, now)
 }
